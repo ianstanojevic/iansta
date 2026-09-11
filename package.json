@@ -1,0 +1,49 @@
+{
+  "name": "iron-carbon-phase-diagram",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Interactive Fe-Fe3C (iron-carbon) phase diagram with lever rule, cooling simulation and microstructure visualisation.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -b --noEmit false --emitDeclarationOnly false --pretty",
+    "lint": "eslint . --ext ts,tsx"
+  },
+  "dependencies": {
+    "d3-array": "^3.2.4",
+    "d3-delaunay": "^6.0.4",
+    "d3-drag": "^3.0.0",
+    "d3-ease": "^3.0.1",
+    "d3-scale": "^4.0.2",
+    "d3-selection": "^3.0.0",
+    "d3-shape": "^3.2.0",
+    "d3-zoom": "^3.0.0",
+    "framer-motion": "^11.11.17",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@types/d3-array": "^3.2.1",
+    "@types/d3-delaunay": "^6.0.4",
+    "@types/d3-drag": "^3.0.7",
+    "@types/d3-ease": "^3.0.2",
+    "@types/d3-scale": "^4.0.8",
+    "@types/d3-selection": "^3.0.10",
+    "@types/d3-shape": "^3.1.6",
+    "@types/d3-zoom": "^3.0.8",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "vitest": "^2.1.5"
+  }
+}
