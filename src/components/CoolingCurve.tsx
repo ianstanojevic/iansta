@@ -30,6 +30,8 @@ export function CoolingCurve({ path }: { path: CoolingPath }) {
   const temperature = useAppStore((s) => s.temperature);
   const progress = useAppStore((s) => s.progress);
   const setProgress = useAppStore((s) => s.setProgress);
+  const pause = useAppStore((s) => s.pause);
+  const playback = useAppStore((s) => s.playback);
 
   const width = Math.max(0, size.width - MARGIN.left - MARGIN.right);
   const height = Math.max(0, size.height - MARGIN.top - MARGIN.bottom);
@@ -59,8 +61,10 @@ export function CoolingCurve({ path }: { path: CoolingPath }) {
     );
   }, [path.samples, progress, x, y]);
 
+  // Dragging on the curve scrubs the run, like a video scrubber.
   const scrub = (event: React.PointerEvent<SVGSVGElement>) => {
     if (event.buttons === 0 && event.type === 'pointermove') return;
+    if (playback === 'playing') pause();
     const rect = svgRef.current?.getBoundingClientRect();
     if (!rect) return;
     const t = Math.max(0, Math.min(1, (event.clientX - rect.left - MARGIN.left) / (width || 1)));

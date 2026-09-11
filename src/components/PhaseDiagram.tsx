@@ -322,7 +322,7 @@ export function PhaseDiagram({ path }: { path: CoolingPath }) {
                 strokeOpacity={0.22}
                 strokeDasharray="2 5"
               />
-              {playback !== 'idle' && (
+              {(playback !== 'idle' || progress > 0) && (
                 <>
                   <line
                     x1={markerX}
