@@ -185,10 +185,16 @@ Framer Motion · Zustand · Vitest
 
 ## Deployment
 
-`.github/workflows/deploy.yml` type-checks, tests and builds on every push and pull
-request, and publishes the repository's default branch to GitHub Pages. The workflow
-enables the Pages site itself on its first run; if your organisation blocks that, turn
-it on under **Settings → Pages → Source → GitHub Actions**.
+Two workflows, kept separate on purpose:
+
+- **`ci.yml`** type-checks, tests and builds on every push and pull request. It is the
+  signal for whether the code is healthy, and it does not depend on any repository
+  settings.
+- **`deploy.yml`** publishes the default branch to GitHub Pages after CI passes.
+
+Pages has to be switched on once, under **Settings → Pages → Source → GitHub Actions**
+(the runner token is not allowed to create the site itself). Until then the deploy
+workflow is the only thing that fails.
 
 The build uses a relative base path, so the same `dist/` also works on Vercel,
 Netlify, or any static file server without reconfiguration.
