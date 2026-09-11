@@ -131,7 +131,7 @@ npm run build      # production build into dist/
 npm run preview    # serve the production build
 ```
 
-Node 20 or newer.
+Node 20 or newer (CI builds on 22).
 
 ## Tests
 
@@ -186,8 +186,9 @@ Framer Motion · Zustand · Vitest
 ## Deployment
 
 `.github/workflows/deploy.yml` type-checks, tests and builds on every push and pull
-request, and publishes the repository's default branch to GitHub Pages. Enable it once
-under **Settings → Pages → Source → GitHub Actions**.
+request, and publishes the repository's default branch to GitHub Pages. The workflow
+enables the Pages site itself on its first run; if your organisation blocks that, turn
+it on under **Settings → Pages → Source → GitHub Actions**.
 
 The build uses a relative base path, so the same `dist/` also works on Vercel,
 Netlify, or any static file server without reconfiguration.

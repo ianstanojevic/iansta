@@ -23,7 +23,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - run: npm ci
@@ -36,6 +36,10 @@ jobs:
       - name: Configure Pages
         if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
         uses: actions/configure-pages@v5
+        with:
+          # Create the Pages site on the first run instead of requiring a
+          # manual visit to Settings -> Pages.
+          enablement: true
 
       - name: Upload artifact
         if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch

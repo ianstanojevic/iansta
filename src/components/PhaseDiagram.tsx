@@ -7,10 +7,9 @@
  */
 
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { scaleLinear } from 'd3-scale';
 import { line as d3line } from 'd3-shape';
-import { AnimatePresence } from 'framer-motion';
 
 import { C_MAX, ROOM_T, T_MAX } from '../domain/constants';
 import { clamp } from '../domain/curves';
