@@ -186,8 +186,8 @@ Framer Motion · Zustand · Vitest
 ## Deployment
 
 `.github/workflows/deploy.yml` type-checks, tests and builds on every push and pull
-request, and deploys `main` to GitHub Pages. Enable it once under
-**Settings → Pages → Source → GitHub Actions**.
+request, and publishes the repository's default branch to GitHub Pages. Enable it once
+under **Settings → Pages → Source → GitHub Actions**.
 
 The build uses a relative base path, so the same `dist/` also works on Vercel,
 Netlify, or any static file server without reconfiguration.
