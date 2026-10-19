@@ -89,7 +89,7 @@ th{font:500 11.5px var(--mono);color:var(--ink-3);letter-spacing:.04em}
 .legend{display:flex;flex-wrap:wrap;gap:16px;font-size:13px;color:var(--ink-2)}
 .legend i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:6px;vertical-align:-1px}
 .chart{position:relative;width:100%}
-.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart svg{display:block;width:100%;height:auto;overflow:visible;-webkit-tap-highlight-color:transparent}
 .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--card);font:500 12.5px/1.45 var(--mono);padding:7px 10px;border-radius:6px;white-space:nowrap;transform:translate(-50%,-115%);opacity:0;transition:opacity .12s;z-index:2}
 .tip.on{opacity:1}
 .ramp{display:flex;align-items:center;gap:8px;font:500 11.5px var(--mono);color:var(--ink-3)}
@@ -243,7 +243,19 @@ const v=n=>`var(--${n})`;
 const pct=(x,d=1)=>(x*100).toFixed(d).replace(".",",")+" %";
 const txt=(svg,x,y,s,a={})=>{const t=el("text",Object.assign({x,y,"font-size":12,fill:v("ink-3"),"font-family":"IBM Plex Mono, monospace"},a),svg);t.textContent=s;return t};
 function tipFor(box){const t=document.createElement("div");t.className="tip";box.appendChild(t);
-  return{show(h,x,y){t.innerHTML=h;t.style.left=x+"px";t.style.top=y+"px";t.classList.add("on")},hide(){t.classList.remove("on")}}}
+  return{show(h,x,y){t.innerHTML=h;t.classList.add("on");
+      // keep the tooltip inside the chart on narrow screens
+      const w=t.offsetWidth, bw=box.clientWidth; x=Math.min(Math.max(x,w/2+2),bw-w/2-2);
+      t.style.left=x+"px";t.style.top=y+"px"},
+    hide(){t.classList.remove("on")}}}
+// touch: a tap shows the value (same handler as hover), a tap outside any chart hides it
+const _on=EventTarget.prototype.addEventListener;
+EventTarget.prototype.addEventListener=function(type,fn,opt){
+  if(type==="mouseenter"&&this instanceof SVGElement){_on.call(this,"click",e=>{e.stopPropagation();hideAll();fn(e)})}
+  if(type==="mousemove"&&this instanceof SVGElement){_on.call(this,"pointerdown",e=>{e.stopPropagation();hideAll();fn(e)})}
+  return _on.call(this,type,fn,opt)};
+function hideAll(){document.querySelectorAll(".tip.on").forEach(t=>t.classList.remove("on"))}
+_on.call(document,"click",e=>{if(!e.target.closest||!e.target.closest(".chart svg"))hideAll()});
 const toPx=(svg,W,H,x,y)=>{const r=svg.getBoundingClientRect();return[x*r.width/W,y*r.height/H]};
 
 /* ---- rink shot map: attacking zone, goal at top. 1 unit = 1 m. y lateral -15..15, x from goal line -4..18 */
