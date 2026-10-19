@@ -340,7 +340,7 @@ const EXTRA = {"up": [{"date": "2026-10-22", "opp": "TIK", "ha": "B", "xg_f": 2.
   const f=x=>Math.round(x*100);
   EXTRA.up.forEach(r=>{
     const tr=document.createElement("tr");
-    tr.innerHTML=`<td class="num">${r.date.slice(5).replace("-","/")}</td><td>${r.ha==="H"?"":"@ "}${nm[r.opp]||r.opp}</td>`+
+    tr.innerHTML=`<td class="num">${r.date.slice(5).replace("-","/")}</td><td>${nm[r.opp]||r.opp} <span style="color:var(--ink-3);font-size:12.5px">${r.ha==="H"?"hemma":"borta"}</span></td>`+
       `<td class="r num">${r.xg_f.toFixed(2).replace(".",",")}–${r.xg_o.toFixed(2).replace(".",",")}</td>`+
       `<td><div class="bar" title="FBK ${f(r.w)} % · X ${f(r.dr)} % · ${f(r.l)} %"><span style="width:${r.w*100}%;background:var(--green)">${f(r.w)}%</span><span style="width:${r.dr*100}%;background:var(--grey)">${f(r.dr)}%</span><span style="width:${r.l*100}%;background:var(--blue)">${f(r.l)}%</span></div></td>`+
       `<td class="r num">${f(r.over)} %</td>`;
