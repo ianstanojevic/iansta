@@ -146,7 +146,9 @@ def odds_wide(odds: pd.DataFrame) -> pd.DataFrame:
         x = ev[(ev.market == "HOME_AWAY") & (ev.scope == "FULL_TIME_OVER_TIME")]
         _three_way(r, x, "ml", ["home", "away"])
         # puck line: home -1.5 vs away +1.5, and home +1.5 vs away -1.5
-        x = ev[(ev.market == "ASIAN_HANDICAP") & (ev.scope == "FULL_TIME") & (ev.line.abs() == 1.5)]
+        # +/-1.5 settles identically with or without OT (OT is sudden death), so
+        # books quoting it "incl. OT" (bet365) are pooled with 60-min quotes
+        x = ev[(ev.market == "ASIAN_HANDICAP") & (ev.line.abs() == 1.5)].drop_duplicates(["book", "side", "line"])
         hm = x[((x.side == "home") & (x.line == -1.5)) | ((x.side == "away") & (x.line == 1.5))].copy()
         hm["side"] = hm["side"].map({"home": "home_m15", "away": "away_p15"})
         _three_way(r, hm, "plh", ["home_m15", "away_p15"])
@@ -156,6 +158,15 @@ def odds_wide(odds: pd.DataFrame) -> pd.DataFrame:
         # totals (60 min): main line = line whose over/under prices are closest to even at Unibet
         x = ev[(ev.market == "OVER_UNDER") & (ev.scope == "FULL_TIME")]
         _totals(r, x)
+        # bet365 only quotes totals incl. OT; kept separately (priced with the OT goal)
+        x = ev[(ev.market == "OVER_UNDER") & (ev.scope == "FULL_TIME_OVER_TIME") & (ev.book == "bet365")]
+        if not x.empty:
+            pv = x.pivot_table(index="line", columns="side", values=["close", "open"], aggfunc="first").dropna()
+            if len(pv) and ("close", "over") in pv.columns:
+                ln = (pv[("close", "over")] - pv[("close", "under")]).abs().idxmin()
+                r.update(b3ot_tot_line=ln, b3ot_tot_over_c=pv.at[ln, ("close", "over")],
+                         b3ot_tot_under_c=pv.at[ln, ("close", "under")],
+                         b3ot_tot_over_o=pv.at[ln, ("open", "over")], b3ot_tot_under_o=pv.at[ln, ("open", "under")])
         rows.append(r)
     return pd.DataFrame(rows)
 
@@ -168,10 +179,11 @@ def _three_way(r: dict, x: pd.DataFrame, tag: str, sides: list[str]) -> None:
     if not set(sides) <= set(piv_c.columns):
         return
     piv_c, piv_o = piv_c[sides].dropna(), piv_o.reindex(columns=sides)
-    if "Unibetse" in piv_c.index:
-        for s in sides:
-            r[f"ub_{tag}_{s}_c"] = piv_c.at["Unibetse", s]
-            r[f"ub_{tag}_{s}_o"] = piv_o.at["Unibetse", s] if "Unibetse" in piv_o.index else np.nan
+    for book, pre in (("Unibetse", "ub"), ("bet365", "b3")):
+        if book in piv_c.index:
+            for s in sides:
+                r[f"{pre}_{tag}_{s}_c"] = piv_c.at[book, s]
+                r[f"{pre}_{tag}_{s}_o"] = piv_o.at[book, s] if book in piv_o.index else np.nan
     if len(piv_c):
         fair_c = np.array([_devig(list(v)) for v in piv_c.values]).mean(axis=0)
         for s, p in zip(sides, fair_c):
@@ -197,7 +209,7 @@ def _totals(r: dict, x: pd.DataFrame) -> None:
         return
     gap = (piv[("close", "over")] - piv[("close", "under")]).abs()
     books = piv.index.get_level_values(0)
-    ref = "Unibetse" if "Unibetse" in books else books[0]
+    ref = "Unibetse" if "Unibetse" in books else ("bet365" if "bet365" in books else books[0])
     line = gap.loc[ref].idxmin()
     r["tot_line"] = line
     r["tot_line_book"] = ref
@@ -205,9 +217,17 @@ def _totals(r: dict, x: pd.DataFrame) -> None:
         u = piv.loc[("Unibetse", line)]
         r.update(ub_tot_over_c=u[("close", "over")], ub_tot_under_c=u[("close", "under")],
                  ub_tot_over_o=u.get(("open", "over")), ub_tot_under_o=u.get(("open", "under")))
+    if "bet365" in books and line in piv.loc["bet365"].index:
+        b = piv.loc[("bet365", line)]
+        r.update(b3_tot_over_c=b[("close", "over")], b3_tot_under_c=b[("close", "under")],
+                 b3_tot_over_o=b.get(("open", "over")), b3_tot_under_o=b.get(("open", "under")))
     same = piv.xs(line, level="line")
     fair = np.array([_devig([a, b]) for a, b in zip(same[("close", "over")], same[("close", "under")])]).mean(axis=0)
     r["cons_tot_over_c"], r["cons_tot_under_c"] = fair
+    so = same.dropna(subset=[("open", "over"), ("open", "under")]) if ("open", "over") in same.columns else same.iloc[:0]
+    if len(so):
+        fo = np.array([_devig([a, b]) for a, b in zip(so[("open", "over")], so[("open", "under")])]).mean(axis=0)
+        r["cons_tot_over_o"], r["cons_tot_under_o"] = fo
     r["best_tot_over_c"] = same[("close", "over")].max()
     r["best_tot_under_c"] = same[("close", "under")].max()
     r["n_books_tot"] = len(same)
