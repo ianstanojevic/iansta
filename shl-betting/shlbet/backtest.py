@@ -30,6 +30,9 @@ TOT_LINES = (4.5, 5.0, 5.5, 6.0, 6.5)
 
 def load() -> tuple[pd.DataFrame, pd.DataFrame]:
     g = pd.read_csv(PROCESSED / "games.csv")
+    xg = PROCESSED / "game_xg.csv"
+    if xg.exists():
+        g = g.merge(pd.read_csv(xg), on="shl_uuid", how="left")
     g = g.sort_values(["date", "time", "sh_game_id"]).reset_index(drop=True)
     g["game_idx"] = np.arange(len(g))
     gl = pd.read_csv(PROCESSED / "swehockey_goalies.csv")
@@ -97,7 +100,7 @@ def run_dc(g: pd.DataFrame, xi=0.003, ridge=2.0, new_team=0.1, window=900) -> pd
 FEATS = None
 
 
-def run_feat(g, side_df, dc, elo, alpha=1e-3, refit_days=28, min_prev=5, goalie_scn="late") -> pd.DataFrame:
+def run_feat(g, side_df, dc, elo, alpha=1e-3, refit_days=28, min_prev=5, goalie_scn="late", use_xg=False) -> pd.DataFrame:
     """Stacked Poisson GLM for goals of the attacking side. Refit every
     `refit_days` on all earlier games (expanding window)."""
     s = side_df.merge(g[["game_idx", "date", "season", "played"]], on="game_idx")
@@ -106,6 +109,8 @@ def run_feat(g, side_df, dc, elo, alpha=1e-3, refit_days=28, min_prev=5, goalie_
     s["elo_d"] = np.where(s.is_home == 1, s.elo_diff, -s.elo_diff) / 400
     feats = ["is_home", "dc_log", "elo_d", "o_gsv", "a_gsv", "o_backup", "a_rest", "o_rest", "a_b2b", "o_b2b",
              "a_travel"] + [f"a_{c}" for c in F.FORM] + [f"o_{c}" for c in F.FORM]
+    if use_xg:
+        feats += [f"a_{c}" for c in F.FORM_XG] + [f"o_{c}" for c in F.FORM_XG]
     global FEATS
     FEATS = feats
     s["d"] = pd.to_datetime(s.date)
@@ -119,7 +124,7 @@ def run_feat(g, side_df, dc, elo, alpha=1e-3, refit_days=28, min_prev=5, goalie_
         te = s[(s.d >= cut) & (s.d < nxt)]
         if len(tr) > 500 and len(te):
             X = tr[feats].astype(float)
-            mu = X.mean()
+            mu = X.mean().fillna(0.0)  # a feature can be all-NaN early on (xG before 2023-24)
             sc = StandardScaler().fit(X.fillna(mu))
             m = PoissonRegressor(alpha=alpha, max_iter=1000)
             m.fit(sc.transform(X.fillna(mu)), tr.goals.astype(float))

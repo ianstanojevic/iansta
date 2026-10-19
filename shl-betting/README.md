@@ -12,7 +12,8 @@ growth when betting on Färjestad BK games at Unibet.
 
 ```bash
 . .venv/bin/activate
-python update_data.py          # before each bet: new results, rebuild, refit (~4 min)
+python update_data.py          # before each bet: new results, rebuild, refit (~1.5 min)
+python -m pytest -q            # pricing invariants, no-look-ahead checks, tools
 
 # copy Unibet's PRE-GAME odds for the markets on offer:
 python predict.py --opp Timrå --away \
@@ -71,8 +72,9 @@ so they are excluded from CLV.
 - **Name the goalies when they are known.** Without `--fbk-goalie` and
   `--opp-goalie`, `predict.py` guesses the team's most frequent recent
   starter, which is the weaker of the two tested scenarios.
-- **No injuries, lineups or xG in the model.** No injury feed exists for the
-  SHL, and shot coordinates (for xG) only go back to 2023/24.
+- **No injuries or lineups in the model.** No injury feed exists for the SHL.
+  An xG model was built from shot coordinates, but it did not improve
+  predictions and is not used (`reports/xg_experiment.md`).
 - **Färjestad's sample is tiny** (about 25 totals bets a season), so the
   Färjestad-only results say nothing. The all-SHL backtest is the evidence.
 - **Regular season only.** Playoff hockey (no shootout, different OT) is not

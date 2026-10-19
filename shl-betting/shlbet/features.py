@@ -28,6 +28,7 @@ def team_log(g: pd.DataFrame) -> pd.DataFrame:
             "pkga": g[f"fs_{opp}_power_play_pct_n"], "pko": g[f"fs_{opp}_power_play_pct_d"],
             "fow": g[f"fs_{side}_faceoffs_won"], "fol": g[f"fs_{opp}_faceoffs_won"],
             "goalie": g[f"{side}_goalie"],
+            "xgf": g.get(f"{side}_xg"), "xga": g.get(f"{opp}_xg"),
         })
         cols[side] = d
     return pd.concat(cols.values(), ignore_index=True).sort_values(["team", "date", "game_idx"])
@@ -42,8 +43,9 @@ def build_features(g: pd.DataFrame, gl: pd.DataFrame, halflife: float = 10.0) ->
     """Returns one row per (game, team) with pre-game form features."""
     t = team_log(g).reset_index(drop=True)
     grp = t["team"]
-    for c in ("gf", "ga", "sf", "sa", "ff", "fa", "ppg", "ppo", "pkga", "pko", "fow", "fol"):
-        t[f"e_{c}"] = ewm_prev(t[c], grp, halflife)
+    for c in ("gf", "ga", "sf", "sa", "ff", "fa", "ppg", "ppo", "pkga", "pko", "fow", "fol", "xgf", "xga"):
+        t[f"e_{c}"] = ewm_prev(t[c].astype(float), grp, halflife)
+    t["xg_share"] = t.e_xgf / (t.e_xgf + t.e_xga)
     t["pp_pct"] = (t.e_ppg / t.e_ppo).fillna(0.18)
     t["pk_pct"] = (1 - t.e_pkga / t.e_pko).fillna(0.82)
     t["fo_pct"] = (t.e_fow / (t.e_fow + t.e_fol)).fillna(0.5)
@@ -57,7 +59,8 @@ def build_features(g: pd.DataFrame, gl: pd.DataFrame, halflife: float = 10.0) ->
     t["g_sv"] = [sv.get((gi, gk), LEAGUE_SV) for gi, gk in zip(t.game_idx, t.goalie)]
     t["g_sv_exp"] = [sv.get((gi, gk), LEAGUE_SV) for gi, gk in zip(t.game_idx, t.exp_goalie)]
     # stat columns of the current game must never be used as features
-    return t.drop(columns=["gf", "ga", "sf", "sa", "ff", "fa", "ppg", "ppo", "pkga", "pko", "fow", "fol"])
+    return t.drop(columns=["gf", "ga", "sf", "sa", "ff", "fa", "ppg", "ppo", "pkga", "pko", "fow", "fol",
+                           "xgf", "xga"])
 
 
 def _backup_flag(t: pd.DataFrame) -> pd.Series:
@@ -107,6 +110,8 @@ def goalie_sv(g: pd.DataFrame, gl: pd.DataFrame) -> dict:
 
 
 FORM = ["e_gf", "e_ga", "e_sf", "e_sa", "e_ff", "e_fa", "pp_pct", "pk_pct", "fo_pct", "sh_share", "ff_share"]
+# xG form (2023-24 onwards; NaN earlier, mean-imputed by the GLM)
+FORM_XG = ["e_xgf", "e_xga", "xg_share"]
 
 
 def side_rows(g: pd.DataFrame, f: pd.DataFrame, goalie_col: str = "g_sv") -> pd.DataFrame:
@@ -118,7 +123,7 @@ def side_rows(g: pd.DataFrame, f: pd.DataFrame, goalie_col: str = "g_sv") -> pd.
         a = fi.loc[list(zip(g.game_idx, g[side]))].reset_index(drop=True)
         o = fi.loc[list(zip(g.game_idx, g[opp]))].reset_index(drop=True)
         d = pd.DataFrame({"game_idx": g.game_idx.values, "is_home": float(side == "home")})
-        for c in FORM:
+        for c in FORM + FORM_XG:
             d[f"a_{c}"] = a[c].values
             d[f"o_{c}"] = o[c].values
         d["o_gsv"] = o[goalie_col].values

@@ -84,7 +84,7 @@ def build() -> pd.DataFrame:
     g = g.sort_values(["date", "time", "sh_game_id"]).reset_index(drop=True)
     g["game_idx"] = np.arange(len(g))
     g.to_csv(PROCESSED / "games.csv", index=False)
-    wide = odds_wide(odds)
+    wide = odds_wide_cached(odds)
     wide.to_csv(PROCESSED / "odds_wide.csv", index=False)
     return g
 
@@ -127,6 +127,24 @@ def _devig(prices: list[float]) -> list[float]:
     inv = [1 / p for p in prices]
     s = sum(inv)
     return [x / s for x in inv]
+
+
+# Bump when odds_wide's logic changes; cached rows from another version are discarded.
+ODDS_WIDE_VERSION = 3
+
+
+def odds_wide_cached(odds: pd.DataFrame) -> pd.DataFrame:
+    """odds_wide, recomputing only games not already in data/processed/odds_wide.csv.
+    Closing odds of a played game never change, so cached rows stay valid."""
+    path = PROCESSED / "odds_wide.csv"
+    old = pd.read_csv(path) if path.exists() else pd.DataFrame()
+    if old.empty or "wide_version" not in old or (old.wide_version != ODDS_WIDE_VERSION).any():
+        old = pd.DataFrame(columns=["fs_id"])
+    new_ids = set(odds.fs_id) - set(old.fs_id)
+    new = odds_wide(odds[odds.fs_id.isin(new_ids)]) if new_ids else pd.DataFrame()
+    if len(new):
+        new["wide_version"] = ODDS_WIDE_VERSION
+    return pd.concat([old[old.fs_id.isin(set(odds.fs_id))], new], ignore_index=True)
 
 
 def odds_wide(odds: pd.DataFrame) -> pd.DataFrame:

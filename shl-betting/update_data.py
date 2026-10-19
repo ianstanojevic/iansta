@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import argparse
 
-from shlbet import backtest, build_dataset, scrape_chl, scrape_odds, scrape_shlapi, scrape_swehockey, validate
+from shlbet import backtest, build_dataset, xg, scrape_chl, scrape_odds, scrape_shlapi, scrape_swehockey, validate
 from shlbet.config import CURRENT_SEASON, SEASONS
 
 
@@ -29,6 +29,8 @@ def main() -> None:
     print("building dataset ...")
     g = build_dataset.build()
     print(validate.report().split("## 3.")[0][-600:])
+    print("xG per game (shown in reports; not a model input, see reports/xg_experiment.md) ...")
+    xg.game_xg()
     print("refitting models (walk-forward predictions incl. upcoming games) ...")
     backtest.make_predictions()
     cur = g[(g.season == CURRENT_SEASON) & g.played]
