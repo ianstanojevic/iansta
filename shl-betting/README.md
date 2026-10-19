@@ -68,9 +68,9 @@ so they are excluded from CLV.
   Unibet's closing line over 50+ bets, stop.
 - **The model overrates its own EV.** By the closing line the chosen bets are
   −1% to −4% EV. Hence ¼ Kelly rather than the growth-optimal ½ Kelly.
-- **Goalies are projected, not confirmed.** `predict.py` assumes the team's
-  most frequent recent starter. If someone else starts, the totals estimate is
-  slightly off.
+- **Name the goalies when they are known.** Without `--fbk-goalie` and
+  `--opp-goalie`, `predict.py` guesses the team's most frequent recent
+  starter, which is the weaker of the two tested scenarios.
 - **No injuries, lineups or xG in the model.** No injury feed exists for the
   SHL, and shot coordinates (for xG) only go back to 2023/24.
 - **Färjestad's sample is tiny** (about 25 totals bets a season), so the
