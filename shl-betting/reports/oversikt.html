@@ -1,0 +1,346 @@
+<title>Färjestadsmodellen</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column on rink-ice neutrals; scoreboard-condensed headings; charts span the column. */
+:root{
+  --bg:#f3f6f7; --surface:#fbfcfc; --ink:#152025; --ink-2:#44535a; --ink-3:#6c7b82;
+  --rule:#d7e0e3; --grid:#e3eaec;
+  --green:#16794b; --violet:#7a4fd1; --green-soft:#e2f0e8;
+  --good:#16794b; --warn:#a15c00; --bad:#b3261e;
+  --good-bg:#e2f0e8; --warn-bg:#f8ecd9; --bad-bg:#f8e1df; --neutral-bg:#e8edef;
+  --band:#e9eff1;
+  --f-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1517; --surface:#151d20; --ink:#e6eef0; --ink-2:#a9b8bd; --ink-3:#7f8f95;
+  --rule:#26343a; --grid:#1f2b30; --green:#2f9a68; --violet:#9273e0; --green-soft:#16302a;
+  --good:#4cc08a; --warn:#e3a14a; --bad:#f07a70; --good-bg:#14302a; --warn-bg:#33270f; --bad-bg:#3a1c1a; --neutral-bg:#1d2a2f;
+  --band:#18242a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1517; --surface:#151d20; --ink:#e6eef0; --ink-2:#a9b8bd; --ink-3:#7f8f95;
+  --rule:#26343a; --grid:#1f2b30; --green:#2f9a68; --violet:#9273e0; --green-soft:#16302a;
+  --good:#4cc08a; --warn:#e3a14a; --bad:#f07a70; --good-bg:#14302a; --warn-bg:#33270f; --bad-bg:#3a1c1a; --neutral-bg:#1d2a2f;
+  --band:#18242a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:400 16px/1.6 var(--f-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:880px;margin:0 auto;padding-block:40px 72px;display:flex;flex-direction:column;gap:56px}
+h1,h2,h3{font-family:var(--f-display);font-weight:600;letter-spacing:.01em;text-wrap:balance;margin:0;line-height:1.05}
+h1{font-size:clamp(44px,8vw,76px);font-weight:700;text-transform:uppercase}
+h2{font-size:clamp(28px,4.4vw,38px);text-transform:uppercase}
+h3{font-size:22px}
+p{margin:0;max-width:65ch}
+.eyebrow{font:500 12px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.lede{font-size:19px;color:var(--ink-2)}
+section{display:flex;flex-direction:column;gap:18px}
+.num{font-variant-numeric:tabular-nums}
+code,.mono{font-family:var(--f-mono);font-size:.92em}
+
+/* hero */
+.hero{display:flex;flex-direction:column;gap:18px;border-top:6px solid var(--green);padding-top:22px}
+.hero h1 span{color:var(--green)}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+.stat{background:var(--surface);padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.stat b{font:600 30px/1 var(--f-display);font-variant-numeric:tabular-nums}
+.stat small{color:var(--ink-3);font-size:13px;line-height:1.35}
+@media (max-width:640px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* figure */
+figure{margin:0;background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:18px 18px 14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+figcaption{font-size:13.5px;color:var(--ink-3);max-width:70ch}
+.fig-title{font:600 15px/1.3 var(--f-body)}
+.legend{display:flex;flex-wrap:wrap;gap:16px;font-size:13px;color:var(--ink-2)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.chart{position:relative;width:100%}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font:500 12.5px/1.4 var(--f-mono);padding:6px 9px;border-radius:4px;white-space:nowrap;transform:translate(-50%,-115%);opacity:0;transition:opacity .12s}
+.tip.on{opacity:1}
+@media (prefers-reduced-motion:reduce){.tip{transition:none}}
+
+/* phases */
+.phases{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;list-style:none;padding:0;margin:0;counter-reset:ph}
+.phases li{counter-increment:ph;background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.phases li::before{content:"Fas " counter(ph);font:500 11px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--green)}
+.phases b{font:600 19px/1.15 var(--f-display);text-transform:uppercase}
+.phases p{font-size:14px;color:var(--ink-2)}
+@media (max-width:720px){.phases{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* verdict table */
+.tbl{overflow-x:auto;border:1px solid var(--rule);border-radius:6px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:14.5px}
+th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--rule);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font:500 11.5px/1.2 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.pill{display:inline-flex;align-items:center;gap:6px;font:600 12.5px/1 var(--f-body);padding:5px 9px;border-radius:999px;white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.p-good{background:var(--good-bg);color:var(--good)} .p-warn{background:var(--warn-bg);color:var(--warn)}
+.p-bad{background:var(--bad-bg);color:var(--bad)}
+
+/* two-col text */
+.cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+.cols>div{display:flex;flex-direction:column;gap:10px;min-width:0}
+@media (max-width:720px){.cols{grid-template-columns:1fr}}
+ul.plain{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;color:var(--ink-2);font-size:15px}
+pre{margin:0;background:var(--band);border:1px solid var(--rule);border-radius:6px;padding:14px 16px;overflow-x:auto;font:400 13px/1.6 var(--f-mono);color:var(--ink)}
+pre .c{color:var(--ink-3)}
+.slip{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:640px){.slip{grid-template-columns:1fr}}
+.bet{background:var(--surface);border:1px solid var(--rule);border-left:4px solid var(--green);border-radius:6px;padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+.bet .top{display:flex;justify-content:space-between;gap:8px;font:600 14px var(--f-body)}
+.bet .top span{color:var(--good)}
+.bet small{color:var(--ink-3)}
+.foot{font-size:13px;color:var(--ink-3);border-top:1px solid var(--rule);padding-top:16px}
+a{color:var(--green)}
+</style>
+
+<div class="wrap">
+
+<header class="hero">
+  <div class="eyebrow">SHL 2026/27 · Färjestad BK · Unibet</div>
+  <h1>Marknaden tror på <span>för många mål</span></h1>
+  <p class="lede">En spelmodell för Färjestads matcher, byggd på åtta säsonger SHL och testad strikt framåt i tiden mot svenska bookmakers öppnings- och stängningsodds. Den enda marknad där testerna ger stöd är antal mål, främst under. Övertaget är litet och inte statistiskt bevisat.</p>
+  <div class="stats">
+    <div class="stat"><b class="num">2 981</b><small>SHL-matcher 2018/19–2026/27, alla kontrollerade mot tre källor</small></div>
+    <div class="stat"><b class="num">8</b><small>svenska bookmakers med öppnings- och stängningsodds, inklusive Unibet</small></div>
+    <div class="stat"><b class="num">+8,0 %</b><small>avkastning per spel på testsäsongen 2025/26 (osäkert: −4,7 till +20,2 %)</small></div>
+    <div class="stat"><b class="num">117,40 kr</b><small>nuvarande bankrulle efter två vunna spel</small></div>
+  </div>
+</header>
+
+<section>
+  <div class="eyebrow">Huvudfyndet</div>
+  <h2>Över-oddsen är för låga</h2>
+  <p>Efter att bookmakerns marginal tagits bort har marknaden i varje säsong sedan 2020/21 gett <em>över</em> högre sannolikhet än det som faktiskt hände. Modellen lär sig ligans verkliga målnivå och hittar därför värde på under. Säsongen 2019/20 gick åt andra hållet, så mönstret är inte en naturlag. Det kan försvinna när marknaden rättar sig.</p>
+  <figure>
+    <div class="fig-title">Andel matcher över huvudlinjen per säsong: marknadens bedömning mot utfallet</div>
+    <div class="legend"><span><i style="background:var(--violet)"></i>Marknadens sannolikhet (utan marginal)</span><span><i style="background:var(--green)"></i>Faktiskt utfall</span></div>
+    <div class="chart" id="c-bias"></div>
+    <figcaption>Huvudlinjen är oftast 5,5 eller 5,0 mål i ordinarie tid. 2026/27 bygger på bara 69 matcher. Källa: Livesports oddsflöde (svenska bookmakers) och stats.swehockey.se.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <div class="eyebrow">Så byggdes den</div>
+  <h2>Fyra faser</h2>
+  <ol class="phases">
+    <li><b>Data</b><p>Resultat, periodsiffror, skott, powerplay, startmålvakter, vila, resor och CHL-matcher. Odds per bookmaker från Livesport med Sverige som geo.</p></li>
+    <li><b>Modeller</b><p>Elo, Dixon-Coles med tidsavklingning och en regulariserad feature-modell. Alla marknader prissätts ur samma resultatmatris.</p></li>
+    <li><b>Utvärdering</b><p>Strikt walk-forward. Inställningar valdes på 2020/21–2024/25, 2025/26 hölls orörd till slutet.</p></li>
+    <li><b>Verktyg</b><p><code>predict.py</code> ger sannolikheter och insats, <code>tracker.py</code> för bok över spel, ROI och CLV.</p></li>
+  </ol>
+</section>
+
+<section>
+  <div class="eyebrow">Modell mot marknad</div>
+  <h2>Slår modellen oddsen?</h2>
+  <p>Måttet är hur mycket bättre (lägre) log loss modellen får när den vägs ihop med marknadens odds, jämfört med enbart marknaden. Värden till höger om noll betyder att modellen tillför något. Strecken visar 95 % konfidensintervall.</p>
+  <figure>
+    <div class="fig-title">Förbättring av log loss mot marknaden, spel nära nedsläpp</div>
+    <div class="legend"><span><i style="background:var(--violet)"></i>Tuning 2020/21–2024/25</span><span><i style="background:var(--green)"></i>Test 2025/26 (orörd)</span></div>
+    <div class="chart" id="c-gain"></div>
+    <figcaption>Paired bootstrap med 4 000 dragningar. Ingen marknad är signifikant på testsäsongen ensam. Totals är den enda som pekar åt rätt håll i båda perioderna.</figcaption>
+  </figure>
+  <div class="tbl"><table>
+    <thead><tr><th>Marknad</th><th>Bedömning</th><th>Varför</th></tr></thead>
+    <tbody>
+      <tr><td><b>Antal mål</b> (ordinarie tid och inkl. förl.)</td><td><span class="pill p-good">Troligt litet övertag</span></td><td>Strukturell över-bias i sju säsonger. Lönsamt på tuning, positivt men inte signifikant på test.</td></tr>
+      <tr><td><b>1X2</b> (60 min)</td><td><span class="pill p-warn">Oklart</span></td><td>Ingen vinst mot marknaden på tuning, svagt positivt på test. För lite att spela på.</td></tr>
+      <tr><td><b>Matchvinnare</b> inkl. förlängning</td><td><span class="pill p-bad">Inget övertag</span></td><td>Modell och marknad är i praktiken lika bra.</td></tr>
+      <tr><td><b>Handikapp ±1,5</b></td><td><span class="pill p-bad">Inget övertag</span></td><td>Exakt noll i båda perioderna.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <div class="eyebrow">Strategin</div>
+  <h2>Bara totals, EV över 2 %, ¼ Kelly</h2>
+  <p>Regeln valdes enbart på tuning-säsongerna: spela antal mål när modellen ser minst 2 % förväntad vinst, med en fjärdedel av Kelly-insatsen och högst 5 % av kassan per spel. Kurvan visar hur en kassa på 100 hade utvecklats med regeln på alla SHL-matcher.</p>
+  <figure>
+    <div class="fig-title">Kassa (start 100) med ¼ Kelly, alla SHL-matcher, veckovis</div>
+    <div class="chart" id="c-bank"></div>
+    <figcaption>1 074 spel. Delen före 2025/26 är tuning-perioden, där regeln valdes, så den är optimistisk. Testsäsongen och 2026/27 är de ärliga delarna. Största nedgång under tuning var 45 %.</figcaption>
+  </figure>
+  <figure>
+    <div class="fig-title">Avkastning per spel med 95 % konfidensintervall</div>
+    <div class="chart" id="c-roi"></div>
+    <figcaption>Flat insats. Intervallen för testsäsongen och 2026/27 går ner under noll, så övertaget är inte bevisat.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <div class="eyebrow">Användning</div>
+  <h2>Före varje match</h2>
+  <div class="cols">
+    <div>
+      <p>Hämta nya resultat, kör modellen med Unibets odds före nedsläpp och logga spelet. Verktyget visar alla marknader men föreslår insats bara i antal mål.</p>
+      <ul class="plain">
+        <li>Spela före nedsläpp, inte live. Modellen vet inget om en pågående match.</li>
+        <li>Med 117 kr blir insatserna oftast 1–6 kr.</li>
+        <li>Slår dina under-spel inte Unibets stängningsodds över 50+ spel: sluta.</li>
+      </ul>
+    </div>
+    <pre><span class="c"># hämta, bygg om, anpassa modellerna</span>
+python update_data.py
+
+<span class="c"># Unibets odds före nedsläpp</span>
+python predict.py --opp Timrå --away \
+  --x 3.30 4.20 1.95 \
+  --tot 5.5 1.85 1.95 \
+  --totot 4.5 1.38 2.90
+
+<span class="c"># bokför och följ upp</span>
+python tracker.py add ...
+python tracker.py settle 3 win --closing 1.90
+python tracker.py report</pre>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">Spelhistorik</div>
+  <h2>Hittills</h2>
+  <div class="slip">
+    <div class="bet"><div class="top">Färjestad – Luleå, under 4,5 inkl. förl. <span>+10,80 kr</span></div><small class="num">15 okt · odds 2,08 · insats 10 kr · lagt live 19:13</small></div>
+    <div class="bet"><div class="top">Linköping – Färjestad, FBK −1,5 <span>+6,60 kr</span></div><small class="num">17 okt · odds 1,66 · insats 10 kr · lagt live 16:01</small></div>
+  </div>
+  <p class="lede" style="font-size:16px">Båda spelen lades under match och räknas därför inte när modellen jämförs mot stängningsodds.</p>
+</section>
+
+<section>
+  <div class="eyebrow">Begränsningar</div>
+  <h2>Det modellen inte vet</h2>
+  <div class="cols">
+    <ul class="plain">
+      <li>Övertaget vilar på en marknadsbias som kan försvinna.</li>
+      <li>Modellen överskattar sitt eget EV: enligt stängningslinjen är de valda spelen −1 till −4 %.</li>
+      <li>Startmålvakten är gissad som lagets vanligaste starter de senaste matcherna.</li>
+    </ul>
+    <ul class="plain">
+      <li>Inga skador, laguppställningar eller xG i modellen.</li>
+      <li>Färjestad ensamt ger cirka 25 spel per säsong, för lite för att bevisa något.</li>
+      <li>Bara grundserien. Slutspel modelleras inte.</li>
+    </ul>
+  </div>
+</section>
+
+<p class="foot">Kod och data: <span class="mono">shl-betting/</span> på grenen <span class="mono">claude/awesome-wright-el2m3w</span> i repot ianstanojevic/iansta. Fullständiga tabeller i <span class="mono">reports/phase3_evaluation.md</span>. Spel innebär risk; satsa bara pengar du har råd att förlora.</p>
+</div>
+
+<script>
+const BANK = [["2020-09-20", 1.0119], ["2020-09-27", 1.018], ["2020-10-04", 1.0376], ["2020-10-11", 1.1006], ["2020-10-18", 1.1155], ["2020-10-25", 1.1448], ["2020-11-01", 1.2236], ["2020-11-15", 1.2625], ["2020-11-22", 1.2801], ["2020-11-29", 1.3085], ["2020-12-06", 1.2955], ["2020-12-13", 1.2807], ["2020-12-20", 1.2913], ["2020-12-27", 1.3132], ["2021-01-03", 1.3816], ["2021-01-10", 1.3664], ["2021-01-17", 1.4078], ["2021-01-24", 1.402], ["2021-01-31", 1.3402], ["2021-02-07", 1.4115], ["2021-02-14", 1.424], ["2021-02-21", 1.4731], ["2021-02-28", 1.5102], ["2021-03-07", 1.4835], ["2021-03-14", 1.4916], ["2021-03-21", 1.5303], ["2021-03-28", 1.5821], ["2021-04-04", 1.5635], ["2021-09-12", 1.593], ["2021-09-19", 1.5846], ["2021-09-26", 1.6557], ["2021-10-03", 1.6068], ["2021-10-10", 1.6878], ["2021-10-17", 1.6322], ["2021-10-24", 1.773], ["2021-10-31", 1.8386], ["2021-11-07", 1.7721], ["2021-11-21", 1.7121], ["2021-11-28", 1.6129], ["2021-12-05", 1.4683], ["2021-12-12", 1.5044], ["2021-12-26", 1.5201], ["2022-01-02", 1.5674], ["2022-01-09", 1.5913], ["2022-01-16", 1.642], ["2022-01-23", 1.6342], ["2022-01-30", 1.5614], ["2022-02-06", 1.5305], ["2022-02-13", 1.5166], ["2022-02-20", 1.5907], ["2022-02-27", 1.5325], ["2022-03-06", 1.5028], ["2022-03-13", 1.5757], ["2022-03-20", 1.6426], ["2022-03-27", 1.7301], ["2022-09-18", 1.7107], ["2022-09-25", 1.5529], ["2022-10-02", 1.5748], ["2022-10-09", 1.5348], ["2022-10-16", 1.526], ["2022-10-23", 1.5105], ["2022-10-30", 1.5137], ["2022-11-06", 1.6129], ["2022-11-20", 1.6452], ["2022-11-27", 1.6184], ["2022-12-04", 1.6808], ["2022-12-11", 1.7149], ["2022-12-18", 1.7301], ["2022-12-25", 1.75], ["2023-01-01", 1.7057], ["2023-01-08", 1.7936], ["2023-01-15", 1.803], ["2023-01-22", 1.8202], ["2023-01-29", 1.7093], ["2023-02-05", 1.7101], ["2023-02-12", 1.6624], ["2023-02-19", 1.6144], ["2023-02-26", 1.4207], ["2023-03-05", 1.4652], ["2023-03-12", 1.5014], ["2023-09-17", 1.6087], ["2023-09-24", 1.569], ["2023-10-01", 1.5983], ["2023-10-08", 1.5848], ["2023-10-15", 1.6369], ["2023-10-22", 1.5409], ["2023-10-29", 1.791], ["2023-11-05", 1.9356], ["2023-11-19", 2.0139], ["2023-11-26", 2.0079], ["2023-12-03", 2.1356], ["2023-12-10", 2.0327], ["2023-12-24", 1.9769], ["2023-12-31", 2.0817], ["2024-01-07", 2.0079], ["2024-01-14", 1.9799], ["2024-01-21", 2.0047], ["2024-01-28", 2.1288], ["2024-02-04", 2.1419], ["2024-02-18", 2.2762], ["2024-02-25", 2.3268], ["2024-03-03", 2.4519], ["2024-03-10", 2.4905], ["2024-03-17", 2.4575], ["2024-09-22", 2.519], ["2024-09-29", 2.6547], ["2024-10-06", 2.8988], ["2024-10-13", 3.0042], ["2024-10-20", 3.1182], ["2024-10-27", 3.1412], ["2024-11-03", 2.6917], ["2024-11-17", 2.5194], ["2024-11-24", 2.2049], ["2024-12-01", 2.0652], ["2024-12-08", 2.1007], ["2024-12-22", 2.2734], ["2024-12-29", 2.1943], ["2025-01-05", 2.0408], ["2025-01-12", 1.7526], ["2025-01-19", 1.9026], ["2025-01-26", 1.9772], ["2025-02-02", 2.1497], ["2025-02-16", 2.1217], ["2025-02-23", 2.1776], ["2025-03-02", 2.0957], ["2025-03-09", 2.3392], ["2025-03-16", 2.4296], ["2025-09-14", 2.4791], ["2025-09-21", 2.4037], ["2025-09-28", 2.2984], ["2025-10-05", 2.5024], ["2025-10-12", 2.391], ["2025-10-19", 2.6331], ["2025-10-26", 2.7669], ["2025-11-02", 2.6902], ["2025-11-16", 2.7462], ["2025-11-23", 2.8644], ["2025-11-30", 2.7254], ["2025-12-07", 3.0882], ["2025-12-21", 3.1325], ["2025-12-28", 3.2017], ["2026-01-04", 3.342], ["2026-01-11", 3.1208], ["2026-01-18", 3.1155], ["2026-01-25", 3.2886], ["2026-02-01", 3.2522], ["2026-02-08", 3.4891], ["2026-02-22", 3.1292], ["2026-03-01", 3.2475], ["2026-03-08", 3.2144], ["2026-03-15", 3.3267], ["2026-09-20", 3.3475], ["2026-09-27", 3.2274], ["2026-10-04", 3.3618], ["2026-10-11", 3.3819], ["2026-10-18", 3.5122]];
+const BIAS = [["2019/20",.485,.518],["2020/21",.472,.427],["2021/22",.471,.434],["2022/23",.501,.479],["2023/24",.502,.480],["2024/25",.503,.491],["2025/26",.496,.461],["2026/27*",.473,.406]];
+const GAIN = [["Antal mål",[.0037,-.0004,.0078],[.0046,-.0065,.0160]],["1X2",[-.0013,-.0059,.0031],[.0037,-.0024,.0098]],["Matchvinnare",[.0000,-.0014,.0014],[.0007,-.0018,.0032]],["±1,5",[.0000,-.0027,.0026],[.0000,-.0052,.0051]]];
+const ROI = [["Tuning 2020/21–24/25","838 spel",.086,.024,.148,"violet"],["Test 2025/26","203 spel",.080,-.047,.202,"green"],["2026/27 hittills","33 spel",.099,-.218,.395,"green"]];
+
+const NS="http://www.w3.org/2000/svg";
+const el=(t,a={},p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e};
+const css=v=>`var(--${v})`;
+const pct=(v,d=1)=>(v*100).toFixed(d).replace(".",",")+" %";
+function tipFor(box){const t=document.createElement("div");t.className="tip";box.appendChild(t);
+  return{show(html,x,y){t.innerHTML=html;t.style.left=x+"px";t.style.top=y+"px";t.classList.add("on")},hide(){t.classList.remove("on")}}}
+function svgPt(svg,box,x,y){const r=svg.getBoundingClientRect(),vb=svg.viewBox.baseVal;return[x*r.width/vb.width,y*r.height/vb.height]}
+
+/* 1. bias: paired dots per season (dumbbell), y = share over */
+(function(){
+  const box=document.getElementById("c-bias"),W=760,H=300,m={l:44,r:12,t:12,b:34};
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":"Marknadens sannolikhet för över mot faktiskt utfall per säsong"},box);
+  const tip=tipFor(box);
+  const y0=.38,y1=.54,y=v=>m.t+(y1-v)/(y1-y0)*(H-m.t-m.b);
+  const bw=(W-m.l-m.r)/BIAS.length,x=i=>m.l+bw*(i+.5);
+  for(let v=.40;v<=.541;v+=.04){el("line",{x1:m.l,x2:W-m.r,y1:y(v),y2:y(v),stroke:css("grid"),"stroke-width":1},svg);
+    const t=el("text",{x:m.l-8,y:y(v)+4,"text-anchor":"end","font-size":12,fill:css("ink-3"),"font-family":"IBM Plex Mono, monospace"},svg);t.textContent=Math.round(v*100)+"%"}
+  BIAS.forEach((d,i)=>{
+    const [s,mk,ac]=d,cx=x(i);
+    el("line",{x1:cx,x2:cx,y1:y(mk),y2:y(ac),stroke:css("ink-3"),"stroke-width":2,"stroke-linecap":"round",opacity:.5},svg);
+    el("circle",{cx,cy:y(mk),r:6.5,fill:css("violet"),stroke:css("surface"),"stroke-width":2},svg);
+    el("circle",{cx,cy:y(ac),r:6.5,fill:css("green"),stroke:css("surface"),"stroke-width":2},svg);
+    const lb=el("text",{x:cx,y:H-10,"text-anchor":"middle","font-size":12,fill:css("ink-2"),"font-family":"IBM Plex Mono, monospace"},svg);lb.textContent=s;
+    const hit=el("rect",{x:cx-bw/2,y:m.t,width:bw,height:H-m.t-m.b,fill:"transparent"},svg);
+    hit.addEventListener("mouseenter",()=>{const [px,py]=svgPt(svg,box,cx,Math.min(y(mk),y(ac)));
+      tip.show(`${s}<br>marknad ${pct(mk)} · utfall ${pct(ac)}<br>skillnad ${(ac-mk>0?"+":"")+pct(ac-mk)}`,px,py-6)});
+    hit.addEventListener("mouseleave",tip.hide);
+  });
+})();
+
+/* 2. gain: horizontal dot + CI, two series per market */
+(function(){
+  const box=document.getElementById("c-gain"),W=760,rowH=62,m={l:120,r:16,t:8,b:34},H=m.t+m.b+rowH*GAIN.length;
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":"Log loss-förbättring mot marknaden per marknad med konfidensintervall"},box);
+  const tip=tipFor(box);
+  const x0=-.008,x1=.018,x=v=>m.l+(v-x0)/(x1-x0)*(W-m.l-m.r);
+  for(let v=-.005;v<=.0151;v+=.005){const X=x(v);
+    el("line",{x1:X,x2:X,y1:m.t,y2:H-m.b,stroke:Math.abs(v)<1e-9?css("ink-3"):css("grid"),"stroke-width":Math.abs(v)<1e-9?1.5:1},svg);
+    const t=el("text",{x:X,y:H-12,"text-anchor":"middle","font-size":12,fill:css("ink-3"),"font-family":"IBM Plex Mono, monospace"},svg);t.textContent=(v>0?"+":"")+v.toFixed(3).replace(".",",")}
+  GAIN.forEach((g,i)=>{
+    const yc=m.t+rowH*i+rowH/2;
+    const lb=el("text",{x:m.l-12,y:yc+5,"text-anchor":"end","font-size":14,"font-weight":600,fill:css("ink")},svg);lb.textContent=g[0];
+    [[g[1],"violet",-11,"Tuning"],[g[2],"green",11,"Test"]].forEach(([v,c,dy,name])=>{
+      const Y=yc+dy;
+      el("line",{x1:x(v[1]),x2:x(v[2]),y1:Y,y2:Y,stroke:css(c),"stroke-width":2,"stroke-linecap":"round"},svg);
+      el("circle",{cx:x(v[0]),cy:Y,r:6,fill:css(c),stroke:css("surface"),"stroke-width":2},svg);
+      const hit=el("rect",{x:m.l,y:Y-10,width:W-m.l-m.r,height:20,fill:"transparent"},svg);
+      hit.addEventListener("mouseenter",()=>{const [px,py]=svgPt(svg,box,x(v[0]),Y);
+        const f=n=>(n>=0?"+":"")+n.toFixed(4).replace(".",",");
+        tip.show(`${g[0]} · ${name}<br>${f(v[0])} [${f(v[1])} – ${f(v[2])}]`,px,py-6)});
+      hit.addEventListener("mouseleave",tip.hide);
+    });
+  });
+})();
+
+/* 3. bankroll line */
+(function(){
+  const box=document.getElementById("c-bank"),W=760,H=300,m={l:44,r:14,t:14,b:30};
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":"Kassans utveckling med strategin"},box);
+  const tip=tipFor(box);
+  const t=s=>new Date(s+"T00:00:00").getTime();
+  const tmin=t(BANK[0][0]),tmax=t(BANK[BANK.length-1][0]);
+  const x=v=>m.l+(v-tmin)/(tmax-tmin)*(W-m.l-m.r);
+  const ymax=400,y=v=>m.t+(ymax-v)/(ymax-0)*(H-m.t-m.b);
+  const test0=t("2025-09-01"),live0=t("2026-09-01");
+  el("rect",{x:x(test0),y:m.t,width:x(tmax)-x(test0),height:H-m.t-m.b,fill:css("band")},svg);
+  const lt=el("text",{x:x(test0)+8,y:H-m.b-10,"font-size":12,fill:css("ink-2"),"font-family":"IBM Plex Mono, monospace"},svg);lt.textContent="test + 2026/27";
+  for(let v=0;v<=400;v+=100){el("line",{x1:m.l,x2:W-m.r,y1:y(v),y2:y(v),stroke:v===100?css("ink-3"):css("grid"),"stroke-width":1,"stroke-dasharray":v===100?"4 4":""},svg);
+    const tx=el("text",{x:m.l-8,y:y(v)+4,"text-anchor":"end","font-size":12,fill:css("ink-3"),"font-family":"IBM Plex Mono, monospace"},svg);tx.textContent=v}
+  for(let yr=2021;yr<=2026;yr++){const X=x(t(yr+"-01-01"));const tx=el("text",{x:X,y:H-8,"text-anchor":"middle","font-size":12,fill:css("ink-3"),"font-family":"IBM Plex Mono, monospace"},svg);tx.textContent=yr}
+  const pts=[[tmin,100],...BANK.map(d=>[t(d[0]),d[1]*100])];
+  const dPath=pts.map((p,i)=>(i?"L":"M")+x(p[0]).toFixed(1)+","+y(p[1]).toFixed(1)).join("");
+  el("path",{d:dPath+`L${x(tmax)},${y(0)}L${x(tmin)},${y(0)}Z`,fill:css("green"),opacity:.09},svg);
+  el("path",{d:dPath,fill:"none",stroke:css("green"),"stroke-width":2,"stroke-linejoin":"round"},svg);
+  const lp=pts[pts.length-1];
+  el("circle",{cx:x(lp[0]),cy:y(lp[1]),r:5,fill:css("green"),stroke:css("surface"),"stroke-width":2},svg);
+  const ll=el("text",{x:x(lp[0])-8,y:y(lp[1])-12,"text-anchor":"end","font-size":13,"font-weight":600,fill:css("ink")},svg);ll.textContent=Math.round(lp[1]);
+  const cross=el("line",{y1:m.t,y2:H-m.b,stroke:css("ink-3"),"stroke-width":1,opacity:0},svg);
+  const dot=el("circle",{r:4.5,fill:css("green"),stroke:css("surface"),"stroke-width":2,opacity:0},svg);
+  const hit=el("rect",{x:m.l,y:m.t,width:W-m.l-m.r,height:H-m.t-m.b,fill:"transparent"},svg);
+  hit.addEventListener("mousemove",e=>{const r=svg.getBoundingClientRect();const vx=(e.clientX-r.left)*W/r.width;
+    let best=BANK[0],bd=1e18;for(const d of BANK){const dd=Math.abs(x(t(d[0]))-vx);if(dd<bd){bd=dd;best=d}}
+    const X=x(t(best[0])),Y=y(best[1]*100);cross.setAttribute("x1",X);cross.setAttribute("x2",X);cross.setAttribute("opacity",.6);
+    dot.setAttribute("cx",X);dot.setAttribute("cy",Y);dot.setAttribute("opacity",1);
+    const [px,py]=svgPt(svg,box,X,Y);tip.show(`${best[0]}<br>kassa ${(best[1]*100).toFixed(0)}`,px,py-8)});
+  hit.addEventListener("mouseleave",()=>{tip.hide();cross.setAttribute("opacity",0);dot.setAttribute("opacity",0)});
+})();
+
+/* 4. ROI with CI */
+(function(){
+  const box=document.getElementById("c-roi"),W=760,rowH=54,m={l:180,r:16,t:6,b:34},H=m.t+m.b+rowH*ROI.length;
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":"Avkastning per spel med konfidensintervall"},box);
+  const tip=tipFor(box);
+  const x0=-.25,x1=.42,x=v=>m.l+(v-x0)/(x1-x0)*(W-m.l-m.r);
+  for(let v=-.2;v<=.41;v+=.1){const X=x(v),z=Math.abs(v)<1e-9;
+    el("line",{x1:X,x2:X,y1:m.t,y2:H-m.b,stroke:z?css("ink-3"):css("grid"),"stroke-width":z?1.5:1},svg);
+    const t=el("text",{x:X,y:H-12,"text-anchor":"middle","font-size":12,fill:css("ink-3"),"font-family":"IBM Plex Mono, monospace"},svg);t.textContent=(v>0?"+":"")+Math.round(v*100)+"%"}
+  ROI.forEach((r,i)=>{const Y=m.t+rowH*i+rowH/2;
+    const a=el("text",{x:m.l-12,y:Y-2,"text-anchor":"end","font-size":14,"font-weight":600,fill:css("ink")},svg);a.textContent=r[0];
+    const b=el("text",{x:m.l-12,y:Y+15,"text-anchor":"end","font-size":12,fill:css("ink-3"),"font-family":"IBM Plex Mono, monospace"},svg);b.textContent=r[1];
+    el("line",{x1:x(r[3]),x2:x(r[4]),y1:Y,y2:Y,stroke:css(r[5]),"stroke-width":2,"stroke-linecap":"round"},svg);
+    el("circle",{cx:x(r[2]),cy:Y,r:6.5,fill:css(r[5]),stroke:css("surface"),"stroke-width":2},svg);
+    const v=el("text",{x:x(r[2]),y:Y-12,"text-anchor":"middle","font-size":12.5,"font-weight":600,fill:css("ink")},svg);v.textContent="+"+pct(r[2]);
+    const hit=el("rect",{x:m.l,y:Y-16,width:W-m.l-m.r,height:32,fill:"transparent"},svg);
+    hit.addEventListener("mouseenter",()=>{const [px,py]=svgPt(svg,box,x(r[2]),Y);tip.show(`${r[0]} · ${r[1]}<br>${pct(r[2])} [${pct(r[3])} – ${pct(r[4])}]`,px,py-10)});
+    hit.addEventListener("mouseleave",tip.hide);
+  });
+})();
+</script>
