@@ -217,16 +217,9 @@ footer{font:400 12px var(--mono);color:var(--ink-3);display:flex;flex-wrap:wrap;
   </section>
 
   <section class="card">
-    <h2>Per marknad (testsäsong 2025/26)</h2>
-    <div class="tbl"><table>
-      <thead><tr><th>Marknad</th><th class="r">Log loss-vinst</th><th class="r">95 % KI</th><th>Bedömning</th></tr></thead>
-      <tbody>
-        <tr><td>Antal mål</td><td class="r num">+0,0046</td><td class="r num">−0,0065 – +0,0160</td><td><span class="st s-good">Litet övertag</span></td></tr>
-        <tr><td>1X2</td><td class="r num">+0,0037</td><td class="r num">−0,0024 – +0,0098</td><td><span class="st s-warn">Oklart</span></td></tr>
-        <tr><td>Matchvinnare</td><td class="r num">+0,0007</td><td class="r num">−0,0018 – +0,0032</td><td><span class="st s-bad">Inget</span></td></tr>
-        <tr><td>Handikapp ±1,5</td><td class="r num">0,0000</td><td class="r num">−0,0052 – +0,0051</td><td><span class="st s-bad">Inget</span></td></tr>
-      </tbody>
-    </table></div>
+    <div class="card-head"><h2>Slår modellen marknaden? Log loss-vinst mot spelbolagen, 95 % KI</h2>
+      <div class="legend"><span><i style="background:var(--blue)"></i>Tuning 2020/21–2024/25</span><span><i style="background:var(--green)"></i>Test 2025/26</span></div></div>
+    <div class="chart" id="c-gain"></div>
   </section>
 
   <footer><span>Källor: stats.swehockey.se · shl.se · Livesport-odds (svenska bolag)</span><span>Walk-forward. Tuning 2020/21–2024/25, test 2025/26.</span></footer>
@@ -474,6 +467,32 @@ const TN={FBK:"Färjestad",TIK:"Timrå",VLH:"Växjö",BIF:"Brynäs",DIF:"Djurgå
     L.forEach((r,i)=>{el("circle",{cx:x(i),cy:y(r[k]),r:3.5,fill:v("green"),stroke:v("card"),"stroke-width":1.5},svg);
       const hit=el("rect",{x:x(i)-12,y:m.t,width:24,height:H-m.t-m.b,fill:"transparent"},svg);
       hit.addEventListener("mouseenter",()=>{const [px,py]=toPx(svg,W,H,x(i),y(r[k])-6);tip.show(`${r[0]}: ${f(r[k])}`,px,py)});
+      hit.addEventListener("mouseleave",tip.hide)});
+  });
+})();
+
+/* model vs market per market: dot + CI, tune and test */
+(function(){
+  const G=[["Antal mål","good","Litet övertag",[.0037,-.0004,.0078],[.0046,-.0065,.0160]],
+           ["1X2","warn","Oklart",[-.0013,-.0059,.0031],[.0037,-.0024,.0098]],
+           ["Matchvinnare","bad","Inget",[.0000,-.0014,.0014],[.0007,-.0018,.0032]],
+           ["Handikapp ±1,5","bad","Inget",[.0000,-.0027,.0026],[.0000,-.0052,.0051]]];
+  const box=document.getElementById("c-gain"),W=1080,row=58,m={l:150,r:130,t:6,b:30},H=m.t+m.b+row*G.length;
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":"Modellens förbättring mot marknaden per marknad"},box);
+  const tip=tipFor(box), x0=-.008,x1=.018, x=q=>m.l+(q-x0)/(x1-x0)*(W-m.l-m.r);
+  for(let q=-.005;q<=.0151;q+=.005){const X=x(q),z=Math.abs(q)<1e-9;
+    el("line",{x1:X,x2:X,y1:m.t,y2:H-m.b,stroke:z?v("ink-3"):v("grid"),"stroke-width":z?1.5:1},svg);
+    txt(svg,X,H-10,(q>0?"+":"")+q.toFixed(3).replace(".",","),{"text-anchor":"middle"})}
+  G.forEach(([name,st,verdict,tu,te],i)=>{
+    const yc=m.t+row*i+row/2;
+    txt(svg,m.l-14,yc+5,name,{"text-anchor":"end","font-size":14,fill:v("ink"),"font-family":"Archivo, sans-serif"});
+    txt(svg,W-m.r+16,yc+5,verdict,{"font-size":13,fill:v(st),"font-weight":600,"font-family":"Archivo, sans-serif"});
+    [[tu,"blue",-9,"Tuning"],[te,"green",9,"Test"]].forEach(([d,c,dy,per])=>{const Y=yc+dy;
+      el("line",{x1:x(d[1]),x2:x(d[2]),y1:Y,y2:Y,stroke:v(c),"stroke-width":2,"stroke-linecap":"round"},svg);
+      el("circle",{cx:x(d[0]),cy:Y,r:6,fill:v(c),stroke:v("card"),"stroke-width":2},svg);
+      const hit=el("rect",{x:m.l,y:Y-9,width:W-m.l-m.r,height:18,fill:"transparent"},svg);
+      const f=n=>(n>=0?"+":"−")+Math.abs(n).toFixed(4).replace(".",",");
+      hit.addEventListener("mouseenter",()=>{const [px,py]=toPx(svg,W,H,x(d[0]),Y-6);tip.show(`${name} · ${per}<br>${f(d[0])} [${f(d[1])} – ${f(d[2])}]`,px,py)});
       hit.addEventListener("mouseleave",tip.hide)});
   });
 })();
