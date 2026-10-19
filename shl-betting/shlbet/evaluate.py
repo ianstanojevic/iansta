@@ -132,6 +132,34 @@ def fit_weight(f, mask) -> float:
     return float(best)
 
 
+def wf_pool(f, d: pd.DataFrame) -> tuple[np.ndarray, dict]:
+    """Pool model and market with a weight fit walk-forward: the weight used in
+    season s is fit only on seasons before s (from 2019-20 on), so even the
+    tuning-season numbers are out of sample."""
+    P = np.full(f["pm"].shape, np.nan)
+    ws = {}
+    seasons = sorted(d.season.unique())
+    bad = np.isnan(f["pm"]).any(axis=1) | np.isnan(f["cons"]).any(axis=1)
+    for s in seasons:
+        if s in BURN:
+            continue
+        prior = (d.season.values < s) & (d.season.values >= "2019-20")
+        w = fit_weight(f, prior)
+        ws[s] = w
+        cur = d.season.values == s
+        P[cur] = pool(np.nan_to_num(f["pm"][cur], nan=0.5), np.nan_to_num(f["cons"][cur], nan=0.5), w)
+    P[bad] = np.nan
+    return P, ws
+
+
+def paired_gain(Pm, Pk, y, mask, n=4000):
+    ok = mask & ~np.isnan(Pm).any(axis=1) & ~np.isnan(Pk).any(axis=1) & (y >= 0) & (y < Pm.shape[1])
+    i = np.arange(ok.sum())
+    diff = -np.log(Pk[ok][i, y[ok]]) + np.log(Pm[ok][i, y[ok]])
+    bs = diff[RNG.integers(0, len(diff), (n, len(diff)))].mean(axis=1)
+    return diff.mean(), np.quantile(bs, 0.025), np.quantile(bs, 0.975), (bs > 0).mean(), ok.sum()
+
+
 # ------------------------------------------------------------------- betting
 
 def candidate_bets(f, P, mask) -> pd.DataFrame:
@@ -151,7 +179,7 @@ def candidate_bets(f, P, mask) -> pd.DataFrame:
         if f["mk"] != "tot":
             res = np.where(f["y"] == j, o - 1, -1.0)
         cf = f["cons_c"][:, j]
-        clv_ev = cf * (o - 1) - (1 - cf) if f["mk"] != "tot" else cf * (o - 1) - (1 - cf)
+        clv_ev = (cf * (o - 1) - (1 - cf)) * (1 - f["push_m"])  # push stakes are returned
         ok = mask & ~np.isnan(o) & ~np.isnan(p_w) & (f["y"] >= 0)
         out.append(pd.DataFrame({
             "row": np.where(ok)[0], "market": f["mk"], "side": f["sides"][j], "odds": o[ok], "close": oc[ok],
@@ -266,6 +294,7 @@ def run() -> str:
         L.append("### Probability quality (log loss; lower is better)")
         rows = []
         chosen = {}
+        gains = []
         for mk in MARKETS:
             base = market_frame(d, mk, MODELS[scn][0], when)
             nv = naive_probs(d, mk, base)
@@ -278,9 +307,8 @@ def run() -> str:
                 f = market_frame(d, mk, model, when)
                 if not len(f) or np.isnan(f["pm"]).all():
                     continue
-                w = fit_weight(f, tune)
-                Pp = pool(np.nan_to_num(f["pm"], nan=0.5), np.nan_to_num(f["cons"], nan=0.5), w)
-                Pp[np.isnan(f["pm"]).any(axis=1) | np.isnan(f["cons"]).any(axis=1)] = np.nan
+                Pp, ws = wf_pool(f, d)
+                w = ws[TEST[0]]
                 for per, m in (("tune", tune), ("test", test)):
                     res[(model, per)] = logloss(f["pm"][m], f["y"][m])[0]
                     res[(f"{model}+mkt(w={w})", per)] = logloss(Pp[m], f["y"][m])[0]
@@ -291,16 +319,32 @@ def run() -> str:
             n_t = logloss(base["cons"][test], base["y"][test])[1]
             for (nm, per), v in res.items():
                 rows.append(dict(market=mk, model=nm, period=per, logloss=v))
-            L.append(f"- **{mk}**: chosen on tune = {best[1]} pooled with market, model weight w={best[2]} (test n={n_t})")
+            g_t = paired_gain(best[4], best[3]["cons"], best[3]["y"], tune)
+            g_s = paired_gain(best[4], best[3]["cons"], best[3]["y"], test)
+            gains.append(dict(market=mk, model=best[1], w_test=best[2],
+                              tune_gain=g_t[0], tune_lo=g_t[1], tune_hi=g_t[2], tune_p=g_t[3],
+                              test_gain=g_s[0], test_lo=g_s[1], test_hi=g_s[2], test_p=g_s[3], test_n=g_s[4]))
+            L.append(f"- **{mk}**: chosen on tune = {best[1]} pooled with market (walk-forward weight; "
+                     f"weight used for test w={best[2]}) (test n={n_t})")
         t = pd.DataFrame(rows).pivot_table(index=["market", "model"], columns="period", values="logloss")
         L.append("")
         L.append(t[["tune", "test"]].round(4).to_markdown())
+        L.append("")
+        L.append("### Log-loss gain of the pooled model over the market (paired bootstrap; >0 = beats market)")
+        gt = pd.DataFrame(gains)
+        L.append(gt.round(4).to_markdown(index=False))
         L.append("")
         # ---- betting
         cands = pd.concat([candidate_bets(c[3], c[4], np.ones(len(d), bool)) for c in chosen.values()],
                           ignore_index=True)
         all_cands[scn] = (cands, chosen)
-        L += betting_section(cands, scn)
+        tc = cands[cands.season.isin(TUNE)]
+        keep = [r.market for r in gt.itertuples()
+                if r.tune_gain > 0 and pick_bets(tc[tc.market == r.market], 0.02).res.mean() > 0]
+        L.append(f"Markets admitted to the combined strategy (tune log-loss gain > 0 AND tune flat ROI at "
+                 f"EV>2% > 0): **{', '.join(keep) or 'none'}**")
+        L.append("")
+        L += betting_section(cands, scn, keep)
     txt = "\n".join(L)
     out = PROCESSED.parent.parent / "reports"
     out.mkdir(exist_ok=True)
@@ -317,7 +361,7 @@ def _stats(b: pd.DataFrame, rule="k0.25") -> dict:
                 logG=sim["log_growth"], mdd=sim["mdd"])
 
 
-def betting_section(c: pd.DataFrame, scn: str) -> list[str]:
+def betting_section(c: pd.DataFrame, scn: str, keep: list[str]) -> list[str]:
     L = ["### Betting: per market (EV > 0.04, flat ROI per bet, 95% bootstrap CI; growth/drawdown at 1/4 Kelly, 5% cap)", ""]
     rows = []
     for per, seasons in (("tune", TUNE), ("test", TEST), ("live", LIVE)):
@@ -331,6 +375,7 @@ def betting_section(c: pd.DataFrame, scn: str) -> list[str]:
     # ---- staking/threshold selection on TUNE (single best bet per game, all markets)
     L.append("### Staking and threshold, chosen on TUNE (single best bet per game across markets)")
     grid = []
+    c = c[c.market.isin(keep)]
     tc = c[c.season.isin(TUNE)]
     n_season = None
     for thr in THRESH:
@@ -343,9 +388,12 @@ def betting_section(c: pd.DataFrame, scn: str) -> list[str]:
                              ror50=risk_of_ruin(b, rule, n_season, sims=400)))
     gr = pd.DataFrame(grid)
     L.append(gr.round(4).to_markdown(index=False))
-    ok = gr[(gr.ror50 <= 0.05) & (gr.logG > 0)]
+    # Constraint: P(bankroll ever halves within one season of bets) <= 1%.
+    # (First run used 5%; tightened before looking at test results of any rule
+    # it admits, because the model's EV estimates exceed what the closing line implies.)
+    ok = gr[(gr.ror50 <= 0.01) & (gr.logG > 0)]
     if ok.empty:
-        L.append("\n**No threshold/staking combination has positive log growth with RoR(50%) <= 5% on TUNE. "
+        L.append("\n**No threshold/staking combination has positive log growth with RoR(50%) <= 1% on TUNE. "
                  "Decision: do not bet (or bet only for tracking with minimal stakes).**")
         thr, rule = None, None
     else:

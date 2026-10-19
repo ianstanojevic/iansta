@@ -3,7 +3,7 @@
 A walk-forward-validated betting model for SHL games, aimed at long-run bankroll
 growth when betting on Färjestad BK games at Unibet.
 
-> Status: **Phase 1 (data) complete.** Models, evaluation and the betting tools
+> Status: **Phases 1–3 complete** (see `reports/phase3_verdict.md`). The betting tools
 > (`predict.py`, `tracker.csv`) come in phases 2–4.
 
 ## Setup

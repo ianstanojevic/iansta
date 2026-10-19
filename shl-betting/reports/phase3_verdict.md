@@ -1,69 +1,67 @@
-# Phase 3 verdict
+# Phase 3 verdict (revised run)
 
-Read `phase3_evaluation.md` for all tables. Everything below was selected on
-the tuning seasons 2020/21–2024/25. The 2025/26 test season was looked at once,
-after every choice had been fixed. 2026/27 so far (69 games) is reported as
-live data.
+Full tables are in `phase3_evaluation.md`.
 
-## Probability quality vs the market (paired bootstrap, log-loss gain over the margin-free Swedish-book consensus)
+## Changes from the first run, and why
 
-| Market | Scenario | Tune gain | Test gain [95% CI] | P(gain > 0), test |
+1. **The pooling weight (model vs market) is now fit walk-forward.** The
+   weight used in season s is fit only on seasons before s. In the first run
+   it was fit on all tuning seasons at once, which flattered the tuning
+   numbers.
+2. **The markets the strategy may bet are chosen on the tuning seasons by a
+   fixed rule:** tuning log-loss gain over the market > 0 AND tuning flat ROI
+   at EV > 2% > 0.
+3. **The risk constraint was tightened** to P(bankroll halves within one
+   season) <= 1% (it was 5%). This was decided before seeing test results for
+   any rule it admits. The reason is that the model's EV estimates exceed what
+   the closing line implies.
+4. **CLV for whole totals lines** now accounts for pushes.
+
+## Probability quality: log-loss gain over the margin-free market (paired bootstrap)
+
+| Market | Tune gain [95% CI] | Test gain [95% CI] | P(gain > 0), test |
+|---|---|---|---|
+| Totals, late (closing) | +0.0037 [−0.0004, +0.0078] | +0.0046 [−0.0065, +0.0160] | 0.79 |
+| Totals, early (opening) | +0.0025 [−0.0006, +0.0058] | +0.0028 [−0.0068, +0.0128] | 0.72 |
+| 1X2, late | −0.0013 [−0.0059, +0.0031] | +0.0037 [−0.0024, +0.0098] | 0.88 |
+| 1X2, early | −0.0004 [−0.0057, +0.0049] | +0.0043 [−0.0026, +0.0110] | 0.89 |
+| Moneyline incl. OT | ≈ 0 | +0.0005 to +0.0007 | 0.61–0.69 |
+| ±1.5 | ≈ 0 | ≈ 0 | 0.50 |
+
+**Structural finding:** the market has overpriced *over* in every season from
+2020/21 to 2026/27, by 1–7 percentage points (Unibet 5.5 line: implied 0.482
+against an actual 0.439, n=538). The totals edge comes from this. The model
+bets unders because it learns the league's real scoring rate.
+
+## Strategy chosen on the tuning seasons (late = bet near puck drop at the closing price)
+
+Only totals were admitted. Rule: EV > 2%, quarter Kelly, max 5% of bankroll
+per bet.
+
+| Period | Bets | Flat ROI [95% CI] | Log growth (¼ Kelly) | Max drawdown |
 |---|---|---|---|---|
-| 1X2 (60 min) | early (opening prices) | +0.0016 | +0.0037 [−0.0016, +0.0088] | 0.90 |
-| 1X2 (60 min) | late (closing prices) | +0.0008 | +0.0030 [−0.0013, +0.0075] | 0.91 |
-| Totals (60 min) | early | +0.0027 | +0.0028 [−0.0068, +0.0127] | 0.73 |
-| Totals (60 min) | late | +0.0042 | +0.0045 [−0.0078, +0.0162] | 0.77 |
-| Moneyline incl. OT | early / late | +0.0014 / +0.0003 | ≈ 0 | 0.62 / 0.71 |
-| ±1.5 | early / late | +0.0011 / +0.0006 | ≈ 0 | 0.46 / 0.49 |
+| Tune 2020/21–2024/25 | 838 | +8.6% [+2.4, +14.8] | +0.89 | 45% (over 5 seasons) |
+| **Test 2025/26** | 203 | **+8.0% [−4.7, +20.2]** | +0.31 | 17% |
+| Live 2026/27 | 33 | +9.9% [−21.8, +39.5] | +0.05 | 7% |
+| Färjestad only, test | 26 | +15% (meaningless n) | | |
 
-The tuning-season gains are slightly optimistic, because the pooling weight was
-chosen on those same seasons. The test-season gains carry no such bias.
-
-### Structural finding: overs are overpriced
-
-In every season from 2020/21 to 2026/27, the margin-free market probability
-of *over* was above the actual over rate.
-
-| Season | 2020/21 | 2021/22 | 2022/23 | 2023/24 | 2024/25 | 2025/26 | 2026/27 so far |
-|---|---|---|---|---|---|---|---|
-| Market P(over) | 0.472 | 0.471 | 0.501 | 0.502 | 0.503 | 0.496 | 0.473 |
-| Actual | 0.427 | 0.434 | 0.479 | 0.480 | 0.491 | 0.461 | 0.406 |
-
-At Unibet's 5.5 line the market implied 0.482 against an actual 0.439 (n=538).
-This is the main source of the totals edge. The model bets unders because it
-learns the league's real scoring rate.
-
-## Betting (single best bet per game; Unibet price when the feed has it, otherwise bet365)
-
-| Scenario | Period | Bets | Flat ROI [95% CI] | Note |
-|---|---|---|---|---|
-| early | tune | 1439 | +7.5% [+1.7, +13.4] | CLV EV −1.4%; beats the closing price 52% of the time |
-| early | **test** | 324 | **+7.1% [−6.0, +20.8]** | CLV EV −3.6%; beats close only 38% |
-| late | tune | 1499 | +6.5% [+0.6, +12.5] | |
-| late | **test** | 329 | **+7.8% [−5.7, +21.7]** | |
-| early | live 2026/27 | 59 | +0.8% | too few bets to read |
-| Färjestad only, early | test | 43 | +20.6% [−17.8, +60.3] | meaningless sample |
-
-Staking chosen on the tuning seasons was EV > 0 with half Kelly and a 5% cap.
-It had the highest log growth while keeping the chance of halving the
-bankroll at or below 5%. **Recommendation: quarter Kelly instead.** On the
-tuning seasons it keeps about 60% of half Kelly's growth with roughly 0% risk
-of ruin. The model's EV estimates are also inflated: the closing line rates
-the chosen bets at −1% to −4% EV, while the model rates them clearly
-positive. That gap means the true edge is smaller than the model believes.
+Early scenario (opening prices, projected goalie): moneyline, ±1.5 and totals
+were admitted, and the rule chosen was flat stakes at EV > 0. The result is
+weaker: test +2.2% [−9.3, +13.8], and the bets did not beat the closing line
+(CLV EV −3.4%). For early betting, totals alone is the only part with
+support.
 
 ## Blunt verdict per market
 
-- **Totals (60 min, Unibet main line): probable small edge, mostly on unders.**
-  The cause is real and has persisted for 7 seasons. The bets were profitable
-  on the tuning seasons (95% CI above 0 in the late scenario) and positive on
-  the test season, but not significant there. If the market corrects its over
-  bias, this edge disappears.
-- **1X2 (60 min): inconclusive, leaning positive.** The model beats the market
-  in both tuning and test, but the CIs include zero, and in the test season
-  the bets did not beat the closing line.
-- **Moneyline incl. OT: no demonstrated edge.**
-- **±1.5 puck line: no edge.** Do not bet it.
-- **Färjestad alone:** about 50 games a season, so nothing can be shown
-  statistically. The all-SHL results are the evidence; Färjestad games are
-  simply where you apply them.
+- **Totals (60 min, Unibet main line): probable small real edge, mostly
+  unders.** The cause is structural and has lasted 7 seasons. The rule was
+  profitable on tuning (CI above 0) and positive on test and live, but not
+  significant on test alone. If the market corrects its over bias, the edge
+  disappears; watch the tracker for that.
+- **1X2 (60 min): inconclusive.** With honest walk-forward weights it shows no
+  gain on the tuning seasons, but +0.004 on test. That is not enough to bet
+  on.
+- **Moneyline incl. OT: no edge.**
+- **±1.5 puck line: no edge.**
+- **Färjestad alone:** too few games to show anything. The all-SHL results are
+  the evidence; Färjestad games are where you apply them.
