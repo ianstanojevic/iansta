@@ -1,0 +1,9 @@
+# pinned to the versions the analysis was run with
+numpy==2.5.4
+pandas==3.0.6
+scipy==1.18.1
+scikit-learn==1.9.1
+requests==2.34.2
+beautifulsoup4==4.15.0
+lxml==6.1.3
+tabulate==0.10.0

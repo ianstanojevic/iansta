@@ -1,0 +1,8 @@
+.venv/
+scratch/
+__pycache__/
+*.pyc
+*.tmp
+# regenerated from data/raw by `python update_data.py` (offline when cached)
+data/processed/*.csv
+data/processed/*.csv.gz
