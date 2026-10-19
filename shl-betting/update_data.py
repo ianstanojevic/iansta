@@ -1,4 +1,4 @@
-"""Fetch whatever is new and rebuild the processed dataset.
+"""Fetch whatever is new, rebuild the processed dataset and refit the models.
 
 Re-runnable: completed games are cached in data/raw and never refetched; only
 the current season's schedule/result pages are refreshed. Run before each bet.
@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import argparse
 
-from shlbet import build_dataset, scrape_chl, scrape_odds, scrape_shlapi, scrape_swehockey, validate
+from shlbet import backtest, build_dataset, scrape_chl, scrape_odds, scrape_shlapi, scrape_swehockey, validate
 from shlbet.config import CURRENT_SEASON, SEASONS
 
 
@@ -29,6 +29,8 @@ def main() -> None:
     print("building dataset ...")
     g = build_dataset.build()
     print(validate.report().split("## 3.")[0][-600:])
+    print("refitting models (walk-forward predictions incl. upcoming games) ...")
+    backtest.make_predictions()
     cur = g[(g.season == CURRENT_SEASON) & g.played]
     print(f"{CURRENT_SEASON}: {len(cur)} games played, last {cur.date.max()}")
 

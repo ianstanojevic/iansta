@@ -3,8 +3,82 @@
 A walk-forward-validated betting model for SHL games, aimed at long-run bankroll
 growth when betting on Färjestad BK games at Unibet.
 
-> Status: **Phases 1–3 complete** (see `reports/phase3_verdict.md`). The betting tools
-> (`predict.py`, `tracker.csv`) come in phases 2–4.
+> Status: all four phases are complete. The honest verdict is in
+> `reports/phase3_verdict.md`: there is a probable small edge in totals
+> (mostly unders) that is **not statistically proven**, and no demonstrated
+> edge in 1X2, moneyline or ±1.5.
+
+## Day-to-day use
+
+```bash
+. .venv/bin/activate
+python update_data.py          # before each bet: new results, rebuild, refit (~4 min)
+
+# copy Unibet's PRE-GAME odds for the markets on offer:
+python predict.py --opp Timrå --away \
+    --x 3.30 4.20 1.95 --ml 2.40 1.58 \
+    --hcp FBK -1.5 3.10 --hcp TIK 1.5 1.36 \
+    --tot 5.5 1.85 1.95 --totot 4.5 1.38 2.90
+
+python tracker.py add --date 2026-10-22 --opp TIK --away --market tot \
+    --selection "Under 5.5 (ord. tid)" --odds 1.95 --stake 4 --prob 0.579
+python tracker.py settle 3 win --closing 1.90   # closing = Unibet's odds just before puck drop
+python tracker.py report                        # bankroll, ROI, CLV
+```
+
+Market arguments, all in Unibet's home/away order:
+
+| Argument | Unibet market |
+|---|---|
+| `--x H X A` | 1X2, regulation time |
+| `--ml H A` | match winner incl. OT and shootout |
+| `--hcp TEAM LINE ODDS` | handicap, regulation time (repeat for both sides) |
+| `--tot LINE OVER UNDER` | total goals, regulation time |
+| `--totot LINE OVER UNDER` | total goals incl. OT and shootout |
+
+`predict.py` shows, for each market you enter: the model probability, that
+probability pooled with Unibet's margin-free price, the fair odds and the EV.
+It suggests a stake only in markets that passed the Phase 3 rule (totals),
+when EV > 2%, at ¼ Kelly capped at 5% of bankroll and rounded down to whole
+kronor. Every other market is shown but marked *ej bevisat övertag*
+("no proven edge").
+
+**Bet before puck drop only.** The model is a pre-game model and cannot
+evaluate live bets. The two bets already in `tracker.csv` were placed live,
+so they are excluded from CLV.
+
+## How the model works
+
+- `shlbet/models.py` holds the Elo, Dixon-Coles and pricing code. Every
+  market is priced from a single 60-minute scoreline matrix. P(home wins OT)
+  is the shrunk historical rate, about 0.54.
+- `shlbet/features.py` builds pre-game form (exponentially weighted with a
+  10-game half-life), the starter's shrunk save % over the past 365 days, a
+  backup-goalie flag, rest, back-to-backs and travel.
+- `shlbet/backtest.py` makes the walk-forward predictions and holds the tuned
+  hyperparameters.
+- `shlbet/evaluate.py` runs the Phase 3 evaluation:
+  `python -m shlbet.evaluate` writes `reports/phase3_evaluation.md`.
+
+## Known weaknesses
+
+- **The edge is small and unproven.** The test-season ROI CI is about −5% to
+  +20%. The edge rests on a market bias (overs overpriced) that can disappear
+  at any time. Watch CLV and results in the tracker. If unders stop beating
+  Unibet's closing line over 50+ bets, stop.
+- **The model overrates its own EV.** By the closing line the chosen bets are
+  −1% to −4% EV. Hence ¼ Kelly rather than the growth-optimal ½ Kelly.
+- **Goalies are projected, not confirmed.** `predict.py` assumes the team's
+  most frequent recent starter. If someone else starts, the totals estimate is
+  slightly off.
+- **No injuries, lineups or xG in the model.** No injury feed exists for the
+  SHL, and shot coordinates (for xG) only go back to 2023/24.
+- **Färjestad's sample is tiny** (about 25 totals bets a season), so the
+  Färjestad-only results say nothing. The all-SHL backtest is the evidence.
+- **Regular season only.** Playoff hockey (no shootout, different OT) is not
+  modelled.
+- **Stakes are small.** With 117 kr and ¼ Kelly, typical stakes are 1–6 kr,
+  and many edges round down to 0 kr.
 
 ## Setup
 

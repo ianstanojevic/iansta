@@ -40,7 +40,7 @@ Current season 2026-27: 69 games played; games per team 9-10.
 | Unibet total open        |         0 |     0     |     0     |     0     |     1     |     1     |     1     |     1     |     1     |
 | SE consensus 1X2         |         1 |     1     |     1     |     1     |     1     |     1     |     1     |     1     |     1     |
 | SE consensus ML          |         1 |     1     |     1     |     1     |     1     |     1     |     1     |     1     |     1     |
-| SE consensus PL          |         1 |     1     |     0.997 |     0.997 |     1     |     1     |     1     |     1     |     1     |
+| SE consensus PL          |         1 |     1     |     0.997 |     1     |     1     |     1     |     1     |     1     |     1     |
 | SE consensus total       |         1 |     1     |     1     |     0.997 |     1     |     1     |     1     |     1     |     1     |
 
 Bookmakers with 1X2 closing odds, by season (games covered):
