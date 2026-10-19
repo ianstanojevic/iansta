@@ -9,7 +9,7 @@
   --ice:#eef3f6; --card:#fbfdfe; --ink:#0d1a24; --ink-2:#405260; --ink-3:#6f8190; --rule:#d6e0e7; --grid:#e3eaef;
   --red:#c8102e; --blue:#2456b3; --green:#0e7a4b;
   --h0:#e3f1ea; --h1:#b5dcc6; --h2:#79bf9b; --h3:#3a9a6c; --h4:#0e6b40;
-  --band:#e6eef3; --good:#0e7a4b; --good-bg:#dcefe4; --warn:#9a5a00; --warn-bg:#f6e9d2; --bad:#b3261e; --bad-bg:#f6dedb;
+  --grey:#8a9aa6; --band:#e6eef3; --good:#0e7a4b; --good-bg:#dcefe4; --warn:#9a5a00; --warn-bg:#f6e9d2; --bad:#b3261e; --bad-bg:#f6dedb;
   --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
   --body:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
@@ -18,12 +18,12 @@
   --ice:#0b131a; --card:#111c25; --ink:#e8f0f5; --ink-2:#a8b8c4; --ink-3:#7d8f9c; --rule:#21313d; --grid:#1a2833;
   --red:#ff5a6e; --blue:#5f86d8; --green:#2f9d68;
   --h0:#12261f; --h1:#1b4535; --h2:#25704f; --h3:#3aa572; --h4:#86e3b2;
-  --band:#16232d; --good:#5cd197; --good-bg:#143326; --warn:#f0b35a; --warn-bg:#33270f; --bad:#ff8a80; --bad-bg:#3a1d1b; color-scheme:dark}}
+  --grey:#5d6d79; --band:#16232d; --good:#5cd197; --good-bg:#143326; --warn:#f0b35a; --warn-bg:#33270f; --bad:#ff8a80; --bad-bg:#3a1d1b; color-scheme:dark}}
 :root[data-theme="dark"]{
   --ice:#0b131a; --card:#111c25; --ink:#e8f0f5; --ink-2:#a8b8c4; --ink-3:#7d8f9c; --rule:#21313d; --grid:#1a2833;
   --red:#ff5a6e; --blue:#5f86d8; --green:#2f9d68;
   --h0:#12261f; --h1:#1b4535; --h2:#25704f; --h3:#3aa572; --h4:#86e3b2;
-  --band:#16232d; --good:#5cd197; --good-bg:#143326; --warn:#f0b35a; --warn-bg:#33270f; --bad:#ff8a80; --bad-bg:#3a1d1b; color-scheme:dark}
+  --grey:#5d6d79; --band:#16232d; --good:#5cd197; --good-bg:#143326; --warn:#f0b35a; --warn-bg:#33270f; --bad:#ff8a80; --bad-bg:#3a1d1b; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--ice);color:var(--ink);font:400 16px/1.55 var(--body);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -53,6 +53,21 @@ p{margin:0}
 .grid2{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:16px}
 @media (max-width:900px){.grid2{grid-template-columns:1fr}}
 .legend i.sq{border-radius:2px}
+table.fit{min-width:0}
+table.fit td,table.fit th{white-space:nowrap;padding-inline:7px}
+.mini{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.mini>div{min-width:0;display:flex;flex-direction:column;gap:4px}
+.mini b{font:500 12.5px var(--body);color:var(--ink-2)}
+@media (max-width:760px){.mini{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.rbar{display:flex;align-items:center;gap:8px;font:400 13px var(--mono);white-space:nowrap}
+.rbar i{display:block;height:10px;border-radius:2px}
+.up td{vertical-align:middle}
+.bar{display:flex;height:22px;border-radius:4px;overflow:hidden;gap:2px;font:500 11.5px/22px var(--mono);color:#fff}
+.bar span{display:block;text-align:center;min-width:0;overflow:hidden;white-space:nowrap}
+.mbar{display:flex;align-items:center;gap:8px;font:400 13px var(--mono);white-space:nowrap}
+.mbar i{display:block;height:10px;border-radius:2px;background:var(--grey)}
+.mbar.ub i{background:var(--green)}
+
 .tbl{overflow-x:auto}
 table{border-collapse:collapse;width:100%;min-width:480px;font-size:14px}
 th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--rule)}
@@ -110,7 +125,7 @@ footer{font:400 12px var(--mono);color:var(--ink-3);display:flex;flex-wrap:wrap;
 <div class="wrap">
   <header class="top">
     <h1>Färjestadsmodellen</h1>
-    <span class="meta">SHL 2018/19–2026/27 · Unibet</span>
+    <span class="meta">SHL 2018/19–2026/27 · Unibet · uppdaterad 2026-10-19</span>
   </header>
 
   <div class="stats">
@@ -139,10 +154,72 @@ footer{font:400 12px var(--mono);color:var(--ink-3);display:flex;flex-wrap:wrap;
     <div class="chart" id="c-bank"></div>
   </section>
 
+  <div class="grid2">
+    <section class="card">
+      <h2>Strategin per säsong (flat insats)</h2>
+      <div class="tbl"><table class="fit">
+        <thead><tr><th>Säsong</th><th class="r">Spel</th><th>ROI</th><th class="r">Träff</th><th class="r">Snittodds</th><th class="r">Under</th></tr></thead>
+        <tbody id="t-strat"></tbody>
+      </table></div>
+    </section>
+    <section class="card">
+      <div class="card-head"><h2>Kalibrering 2020/21–2025/26</h2>
+        <div class="legend"><span><i style="background:var(--green)"></i>1X2</span><span><i style="background:var(--blue)"></i>Över 5,5</span></div></div>
+      <div class="chart" id="c-cal"></div>
+    </section>
+  </div>
+
   <section class="card">
-    <h2>Per marknad</h2>
+    <div class="card-head"><h2>Färjestads kommande matcher · modell</h2>
+      <div class="legend"><span><i class="sq" style="background:var(--green)"></i>FBK vinst</span><span><i class="sq" style="background:var(--grey)"></i>Oavgjort</span><span><i class="sq" style="background:var(--blue)"></i>Motståndare</span></div></div>
+    <div class="tbl"><table class="up">
+      <thead><tr><th>Datum</th><th>Motstånd</th><th class="r">Förv. mål</th><th style="width:42%">1X2, ordinarie tid</th><th class="r">Över 5,5</th></tr></thead>
+      <tbody id="t-up"></tbody>
+    </table></div>
+  </section>
+
+  <div class="grid2">
+    <section class="card">
+      <div class="card-head"><h2>Lagstyrka just nu (modell, mål per match mot snittlag)</h2></div>
+      <div class="chart" id="c-ratings"></div>
+    </section>
+    <section class="card">
+      <div class="card-head"><h2>Färjestad per säsong, mål per match (60 min)</h2>
+        <div class="legend"><span><i style="background:var(--green)"></i>Gjorda</span><span><i style="background:var(--blue)"></i>Insläppta</span></div></div>
+      <div class="chart" id="c-fbk"></div>
+      <div class="tbl"><table class="fit">
+        <thead><tr><th>Säsong</th><th class="r">Plac.</th><th class="r">P/match</th><th class="r">Skottandel</th><th class="r">PP</th><th class="r">PK</th><th class="r">xG-andel</th></tr></thead>
+        <tbody id="t-fbk"></tbody>
+      </table></div>
+    </section>
+  </div>
+
+  <div class="grid2">
+    <section class="card">
+      <h2>Färjestads målvakter, räddningsprocent</h2>
+      <div class="tbl"><table class="fit">
+        <thead><tr><th>Målvakt</th><th>Säsong</th><th class="r">Matcher</th><th class="r">Skott</th><th class="r">Rädd. %</th><th class="r">mot liga</th></tr></thead>
+        <tbody id="t-gk"></tbody>
+      </table></div>
+    </section>
+    <section class="card">
+      <h2>Spelbolag 2024/25–2026/27 (stängningsodds)</h2>
+      <div class="tbl"><table class="fit">
+        <thead><tr><th>Bolag</th><th>Marginal 1X2</th><th class="r">Marg. mål</th><th class="r">Bäst odds</th><th class="r">Matcher</th></tr></thead>
+        <tbody id="t-books"></tbody>
+      </table></div>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>SHL per säsong</h2>
+    <div class="mini" id="c-league"></div>
+  </section>
+
+  <section class="card">
+    <h2>Per marknad (testsäsong 2025/26)</h2>
     <div class="tbl"><table>
-      <thead><tr><th>Marknad</th><th class="r">Log loss-vinst test</th><th class="r">95 % KI</th><th>Bedömning</th></tr></thead>
+      <thead><tr><th>Marknad</th><th class="r">Log loss-vinst</th><th class="r">95 % KI</th><th>Bedömning</th></tr></thead>
       <tbody>
         <tr><td>Antal mål</td><td class="r num">+0,0046</td><td class="r num">−0,0065 – +0,0160</td><td><span class="st s-good">Litet övertag</span></td></tr>
         <tr><td>1X2</td><td class="r num">+0,0037</td><td class="r num">−0,0024 – +0,0098</td><td><span class="st s-warn">Oklart</span></td></tr>
@@ -253,5 +330,139 @@ const toPx=(svg,W,H,x,y)=>{const r=svg.getBoundingClientRect();return[x*r.width/
     dot.setAttribute("cx",X);dot.setAttribute("cy",Y);dot.setAttribute("opacity",1);
     const [px,py]=toPx(svg,W,H,X,Y-8);tip.show(`${b[0]}<br>${Math.round(b[1]*100)} kr`,px,py)});
   hit.addEventListener("mouseleave",()=>{tip.hide();cross.setAttribute("opacity",0);dot.setAttribute("opacity",0)});
+})();
+
+const EXTRA = {"up": [{"date": "2026-10-22", "opp": "TIK", "ha": "B", "xg_f": 2.68, "xg_o": 2.4, "w": 0.454, "dr": 0.186, "l": 0.36, "over": 0.398}, {"date": "2026-10-24", "opp": "VLH", "ha": "H", "xg_f": 3.05, "xg_o": 2.05, "w": 0.581, "dr": 0.171, "l": 0.248, "over": 0.401}, {"date": "2026-10-29", "opp": "BIF", "ha": "B", "xg_f": 2.59, "xg_o": 2.57, "w": 0.412, "dr": 0.185, "l": 0.403, "over": 0.412}, {"date": "2026-10-31", "opp": "VLH", "ha": "B", "xg_f": 2.76, "xg_o": 2.23, "w": 0.499, "dr": 0.184, "l": 0.317, "over": 0.383}, {"date": "2026-11-12", "opp": "DIF", "ha": "H", "xg_f": 3.45, "xg_o": 2.08, "w": 0.639, "dr": 0.153, "l": 0.208, "over": 0.476}, {"date": "2026-11-14", "opp": "LHF", "ha": "B", "xg_f": 2.78, "xg_o": 2.25, "w": 0.5, "dr": 0.183, "l": 0.316, "over": 0.389}, {"date": "2026-11-19", "opp": "FHC", "ha": "H", "xg_f": 2.87, "xg_o": 2.23, "w": 0.518, "dr": 0.18, "l": 0.302, "over": 0.401}, {"date": "2026-11-21", "opp": "MIF", "ha": "H", "xg_f": 3.1, "xg_o": 2.07, "w": 0.587, "dr": 0.169, "l": 0.244, "over": 0.413}], "cal": {"x": [[0.1797, 0.2114, 2181], [0.23, 0.2065, 184], [0.277, 0.2576, 396], [0.3264, 0.3263, 659], [0.3756, 0.3453, 805], [0.4245, 0.4248, 791], [0.4739, 0.4554, 672], [0.5226, 0.4817, 438], [0.5727, 0.5655, 267], [0.6213, 0.5865, 104]], "tot": [[0.3648, 0.3915, 189], [0.3885, 0.3857, 446], [0.4129, 0.3926, 568], [0.4365, 0.4536, 485], [0.4614, 0.4595, 296], [0.486, 0.4887, 133]]}, "books": [["Unibet", 0.0357, 0.0417, 0.461, 797], ["Expekt", 0.0365, 0.0417, 0.445, 797], ["bet365", 0.0377, null, 0.483, 797], ["Coolbet", 0.0406, 0.0502, 0.321, 440], ["BetMGM", 0.0523, 0.0427, 0.061, 385]], "asof": "2026-10-19", "fbk": [{"s": "18-19", "gp": 52, "gf": 3.06, "ga": 2.1, "sh": 0.521, "pp": 0.175, "pk": 0.889, "xg": NaN, "pts": 101, "rank": 1, "ppg_": 1.94}, {"s": "19-20", "gp": 52, "gf": 3.21, "ga": 2.71, "sh": 0.512, "pp": 0.227, "pk": 0.865, "xg": NaN, "pts": 92, "rank": 2, "ppg_": 1.77}, {"s": "20-21", "gp": 52, "gf": 2.81, "ga": 2.65, "sh": 0.486, "pp": 0.18, "pk": 0.778, "xg": NaN, "pts": 81, "rank": 8, "ppg_": 1.56}, {"s": "21-22", "gp": 52, "gf": 2.83, "ga": 2.79, "sh": 0.492, "pp": 0.175, "pk": 0.825, "xg": NaN, "pts": 82, "rank": 6, "ppg_": 1.58}, {"s": "22-23", "gp": 52, "gf": 2.83, "ga": 2.6, "sh": 0.49, "pp": 0.162, "pk": 0.825, "xg": NaN, "pts": 90, "rank": 3, "ppg_": 1.73}, {"s": "23-24", "gp": 52, "gf": 3.33, "ga": 2.21, "sh": 0.532, "pp": 0.182, "pk": 0.891, "xg": 0.523, "pts": 104, "rank": 1, "ppg_": 2.0}, {"s": "24-25", "gp": 52, "gf": 3.35, "ga": 2.81, "sh": 0.525, "pp": 0.193, "pk": 0.803, "xg": 0.529, "pts": 88, "rank": 4, "ppg_": 1.69}, {"s": "25-26", "gp": 52, "gf": 2.67, "ga": 2.42, "sh": 0.534, "pp": 0.179, "pk": 0.874, "xg": 0.545, "pts": 80, "rank": 5, "ppg_": 1.54}, {"s": "26-27", "gp": 10, "gf": 3.9, "ga": 1.0, "sh": 0.547, "pp": 0.262, "pk": 0.929, "xg": 0.577, "pts": 27, "rank": 1, "ppg_": 2.7}], "goalies": [["Anders Lindbäck", "24-25", 7, 145, 0.8897], ["Damian Clara", "24-25", 19, 437, 0.8787], ["Emil Larmi", "25-26", 37, 766, 0.8969], ["Emil Larmi", "26-27", 5, 122, 0.9344], ["Maxime Lagacé", "24-25", 31, 682, 0.8842], ["Melker Thelin", "25-26", 21, 436, 0.8991], ["Melker Thelin", "26-27", 5, 128, 0.9766]], "lgsv": {"24-25": 0.9011, "25-26": 0.8932, "26-27": 0.9038}, "ratings": [["BIF", 2.74, 2.525], ["DIF", 2.437, 2.794], ["FBK", 2.902, 2.394], ["FHC", 2.765, 2.304], ["HV71", 2.5, 2.976], ["IFB", 2.486, 2.602], ["LHC", 2.331, 2.743], ["LHF", 2.616, 2.556], ["MIF", 2.563, 2.715], ["RBK", 2.596, 2.375], ["SAIK", 2.929, 2.421], ["TIK", 2.416, 2.619], ["VLH", 2.599, 2.641], ["ÖHK", 2.508, 2.723]], "league": [["18-19", 4.948, 0.239, 0.588, 0.088], ["19-20", 5.148, 0.184, 0.618, 0.077], ["20-21", 5.343, 0.192, 0.593, 0.06], ["21-22", 5.321, 0.225, 0.58, 0.085], ["22-23", 5.275, 0.231, 0.549, 0.091], ["23-24", 5.115, 0.214, 0.56, 0.104], ["24-25", 5.176, 0.228, 0.555, 0.093], ["25-26", 5.299, 0.19, 0.563, 0.088], ["26-27", 5.0, 0.232, 0.667, 0.058]], "strat": [["20-21", 134, 0.2925, 0.687, 1.887, 0.948], ["21-22", 192, 0.0671, 0.578, 1.864, 0.943], ["22-23", 170, -0.0125, 0.482, 1.926, 0.665], ["23-24", 156, 0.1262, 0.558, 1.923, 0.641], ["24-25", 186, 0.012, 0.495, 1.937, 0.898], ["25-26", 203, 0.0796, 0.517, 1.909, 0.985], ["26-27", 33, 0.0988, 0.606, 1.818, 0.97]]};
+/* ---- upcoming games table */
+(function(){
+  const tb=document.getElementById("t-up"), nm={TIK:"Timrå",VLH:"Växjö",BIF:"Brynäs",DIF:"Djurgården",LHF:"Luleå",FHC:"Frölunda",MIF:"Malmö",HV71:"HV71",LHC:"Linköping",RBK:"Rögle",SAIK:"Skellefteå",ÖHK:"Örebro",IFB:"Björklöven"};
+  const f=x=>Math.round(x*100);
+  EXTRA.up.forEach(r=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td class="num">${r.date.slice(5).replace("-","/")}</td><td>${r.ha==="H"?"":"@ "}${nm[r.opp]||r.opp}</td>`+
+      `<td class="r num">${r.xg_f.toFixed(2).replace(".",",")}–${r.xg_o.toFixed(2).replace(".",",")}</td>`+
+      `<td><div class="bar" title="FBK ${f(r.w)} % · X ${f(r.dr)} % · ${f(r.l)} %"><span style="width:${r.w*100}%;background:var(--green)">${f(r.w)}%</span><span style="width:${r.dr*100}%;background:var(--grey)">${f(r.dr)}%</span><span style="width:${r.l*100}%;background:var(--blue)">${f(r.l)}%</span></div></td>`+
+      `<td class="r num">${f(r.over)} %</td>`;
+    tb.appendChild(tr);
+  });
+})();
+/* ---- bookmakers table */
+(function(){
+  const tb=document.getElementById("t-books"), mx=Math.max(...EXTRA.books.map(b=>b[1]));
+  const p=(x,d=1)=>x==null?"–":(x*100).toFixed(d).replace(".",",")+" %";
+  EXTRA.books.forEach(([b,m1,mt,best,n])=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${b}</td><td><div class="mbar${b==="Unibet"?" ub":""}"><i style="width:${m1/mx*48}px"></i>${p(m1)}</div></td><td class="r num">${p(mt)}</td><td class="r num">${p(best,0)}</td><td class="r num">${n}</td>`;
+    tb.appendChild(tr);
+  });
+})();
+/* ---- calibration */
+(function(){
+  const box=document.getElementById("c-cal"),W=560,H=440,m={l:52,r:16,t:14,b:40};
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":"Modellens sannolikhet mot faktisk frekvens"},box);
+  const tip=tipFor(box);
+  const lo=0,hi=.7, x=q=>m.l+(q-lo)/(hi-lo)*(W-m.l-m.r), y=q=>m.t+(hi-q)/(hi-lo)*(H-m.t-m.b);
+  for(let q=0;q<=.701;q+=.1){el("line",{x1:x(q),x2:x(q),y1:m.t,y2:H-m.b,stroke:v("grid")},svg);el("line",{x1:m.l,x2:W-m.r,y1:y(q),y2:y(q),stroke:v("grid")},svg);
+    txt(svg,x(q),H-m.b+18,Math.round(q*100)+"%",{"text-anchor":"middle"});txt(svg,m.l-8,y(q)+4,Math.round(q*100)+"%",{"text-anchor":"end"})}
+  el("line",{x1:x(0),y1:y(0),x2:x(.7),y2:y(.7),stroke:v("ink-3"),"stroke-dasharray":"5 5"},svg);
+  txt(svg,(m.l+W-m.r)/2,H-4,"modellens sannolikhet",{"text-anchor":"middle"});
+  const yl=txt(svg,14,(m.t+H-m.b)/2,"faktisk frekvens",{"text-anchor":"middle",transform:`rotate(-90 14 ${(m.t+H-m.b)/2})`});
+  [["x","green","1X2"],["tot","blue","Över 5,5"]].forEach(([k,c,name])=>{
+    EXTRA.cal[k].forEach(([pp,aa,n])=>{
+      const cx=x(pp),cy=y(aa);
+      el("circle",{cx,cy,r:6.5,fill:v(c),stroke:v("card"),"stroke-width":2},svg);
+      const hit=el("circle",{cx,cy,r:14,fill:"transparent"},svg);
+      hit.addEventListener("mouseenter",()=>{const [px,py]=toPx(svg,W,H,cx,cy-8);tip.show(`${name}<br>modell ${pct(pp)} · utfall ${pct(aa)}<br>n = ${n}`,px,py)});
+      hit.addEventListener("mouseleave",tip.hide);
+    });
+  });
+})();
+
+const pc=(x,d=1)=>x==null?"–":(x*100).toFixed(d).replace(".",",")+" %";
+const dec=(x,d=2)=>x.toFixed(d).replace(".",",");
+const TN={FBK:"Färjestad",TIK:"Timrå",VLH:"Växjö",BIF:"Brynäs",DIF:"Djurgården",LHF:"Luleå",FHC:"Frölunda",MIF:"Malmö",HV71:"HV71",LHC:"Linköping",RBK:"Rögle",SAIK:"Skellefteå",ÖHK:"Örebro",IFB:"Björklöven"};
+/* strategy by season */
+(function(){
+  const tb=document.getElementById("t-strat"), mx=Math.max(...EXTRA.strat.map(r=>Math.abs(r[2])));
+  EXTRA.strat.forEach(([s,n,roi,hit,odds,under])=>{
+    const w=Math.abs(roi)/mx*56, col=roi>=0?"var(--green)":"var(--red)";
+    const tag=s==="25-26"?" test":s==="26-27"?" live":"";
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td class="num">${s}<span style="color:var(--ink-3)">${tag}</span></td><td class="r num">${n}</td><td><div class="rbar"><i style="width:${w}px;background:${col}"></i>${(roi>=0?"+":"")+pc(roi)}</div></td><td class="r num">${pc(hit,0)}</td><td class="r num">${dec(odds)}</td><td class="r num">${pc(under,0)}</td>`;
+    tb.appendChild(tr);
+  });
+})();
+/* FBK season table + chart */
+(function(){
+  const tb=document.getElementById("t-fbk");
+  EXTRA.fbk.forEach(r=>{const tr=document.createElement("tr");
+    tr.innerHTML=`<td class="num">${r.s}${r.s==="26-27"?'<span style="color:var(--ink-3)"> pågår</span>':""}</td><td class="r num">${r.rank}</td><td class="r num">${dec(r.ppg_)}</td><td class="r num">${pc(r.sh)}</td><td class="r num">${pc(r.pp)}</td><td class="r num">${pc(r.pk)}</td><td class="r num">${(r.xg==null||isNaN(r.xg))?"–":pc(r.xg)}</td>`;tb.appendChild(tr)});
+  const box=document.getElementById("c-fbk"),W=560,H=230,m={l:40,r:12,t:12,b:28};
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":"Färjestads gjorda och insläppta mål per match per säsong"},box);
+  const tip=tipFor(box), D=EXTRA.fbk, n=D.length;
+  const x=i=>m.l+(i+.5)*(W-m.l-m.r)/n, y0=.5,y1=4, y=q=>m.t+(y1-q)/(y1-y0)*(H-m.t-m.b);
+  for(let q=1;q<=4;q++){el("line",{x1:m.l,x2:W-m.r,y1:y(q),y2:y(q),stroke:v("grid")},svg);txt(svg,m.l-8,y(q)+4,q,{"text-anchor":"end"})}
+  D.forEach((r,i)=>txt(svg,x(i),H-8,r.s,{"text-anchor":"middle","font-size":11}));
+  [["gf","green","gjorda"],["ga","blue","insläppta"]].forEach(([k,c])=>{
+    el("path",{d:D.map((r,i)=>(i?"L":"M")+x(i)+","+y(r[k])).join(""),fill:"none",stroke:v(c),"stroke-width":2},svg);
+    D.forEach((r,i)=>el("circle",{cx:x(i),cy:y(r[k]),r:4.5,fill:v(c),stroke:v("card"),"stroke-width":2},svg));
+  });
+  D.forEach((r,i)=>{const hit=el("rect",{x:x(i)-(W-m.l-m.r)/n/2,y:m.t,width:(W-m.l-m.r)/n,height:H-m.t-m.b,fill:"transparent"},svg);
+    hit.addEventListener("mouseenter",()=>{const [px,py]=toPx(svg,W,H,x(i),Math.min(y(r.gf),y(r.ga))-6);tip.show(`${r.s} · ${r.gp} matcher<br>gjorda ${dec(r.gf)} · insläppta ${dec(r.ga)}`,px,py)});
+    hit.addEventListener("mouseleave",tip.hide)});
+})();
+/* goalies */
+(function(){
+  const tb=document.getElementById("t-gk");
+  EXTRA.goalies.sort((a,b)=>b[1].localeCompare(a[1])||b[3]-a[3]).forEach(([nm,s,gp,sh,sv])=>{
+    const d=sv-EXTRA.lgsv[s], col=d>=0?"var(--good)":"var(--bad)";
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${nm}</td><td class="num">${s}</td><td class="r num">${gp}</td><td class="r num">${sh}</td><td class="r num">${pc(sv)}</td><td class="r num" style="color:${col}">${(d>=0?"+":"−")+pc(Math.abs(d))}</td>`;
+    tb.appendChild(tr)});
+})();
+/* ratings scatter: x goals for, y goals against (inverted: up = better defence) */
+(function(){
+  const box=document.getElementById("c-ratings"),W=560,H=440,m={l:48,r:20,t:16,b:40};
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":"Lagens förväntade gjorda och insläppta mål"},box);
+  const tip=tipFor(box), R=EXTRA.ratings;
+  const x0=2.25,x1=3.0,ya=2.25,yb=3.05;
+  const x=q=>m.l+(q-x0)/(x1-x0)*(W-m.l-m.r), y=q=>m.t+(q-ya)/(yb-ya)*(H-m.t-m.b);
+  for(let q=2.3;q<=3.01;q+=.1){el("line",{x1:x(q),x2:x(q),y1:m.t,y2:H-m.b,stroke:v("grid")},svg);txt(svg,x(q),H-m.b+18,dec(q,1),{"text-anchor":"middle"})}
+  for(let q=2.3;q<=3.01;q+=.1){el("line",{x1:m.l,x2:W-m.r,y1:y(q),y2:y(q),stroke:v("grid")},svg);txt(svg,m.l-8,y(q)+4,dec(q,1),{"text-anchor":"end"})}
+  const mgf=R.reduce((a,r)=>a+r[1],0)/R.length, mga=R.reduce((a,r)=>a+r[2],0)/R.length;
+  el("line",{x1:x(mgf),x2:x(mgf),y1:m.t,y2:H-m.b,stroke:v("ink-3"),"stroke-dasharray":"4 4"},svg);
+  el("line",{x1:m.l,x2:W-m.r,y1:y(mga),y2:y(mga),stroke:v("ink-3"),"stroke-dasharray":"4 4"},svg);
+  txt(svg,(m.l+W-m.r)/2,H-4,"gjorda mål per match →",{"text-anchor":"middle"});
+  txt(svg,14,(m.t+H-m.b)/2,"← insläppta (färre = upp)",{"text-anchor":"middle",transform:`rotate(-90 14 ${(m.t+H-m.b)/2})`});
+  const boxes=[];
+  R.forEach(([t,gf,ga])=>{const fb=t==="FBK",cx=x(gf),cy=y(ga),w=(TN[t]||t).length*6.6;
+    el("circle",{cx,cy,r:fb?8:6,fill:fb?v("green"):v("grey"),stroke:v("card"),"stroke-width":2},svg);
+    // label right of the dot unless it would collide with an earlier label, then left
+    const hits=b=>boxes.some(o=>b[0]<o[2]&&b[2]>o[0]&&Math.abs(b[1]-o[1])<14);
+    let bx=[cx+10,cy,cx+10+w], anchor="start";
+    if(hits(bx)||cx+10+w>W-m.r){bx=[cx-10-w,cy,cx-10];anchor="end"}
+    boxes.push(bx);
+    txt(svg,anchor==="start"?cx+10:cx-10,cy+4,TN[t]||t,{"text-anchor":anchor,"font-size":12,fill:fb?v("ink"):v("ink-2"),"font-weight":fb?600:400,"font-family":"Archivo, sans-serif"});
+    const hit=el("circle",{cx,cy,r:14,fill:"transparent"},svg);
+    hit.addEventListener("mouseenter",()=>{const [px,py]=toPx(svg,W,H,cx,cy-8);tip.show(`${TN[t]||t}<br>gjorda ${dec(gf)} · insläppta ${dec(ga)}`,px,py)});
+    hit.addEventListener("mouseleave",tip.hide)});
+})();
+/* league small multiples */
+(function(){
+  const host=document.getElementById("c-league"), L=EXTRA.league;
+  [["Mål per match (60 min)",1,v=>dec(v,2),4.8,5.5],["Andel till förlängning",2,v=>pc(v,0),.15,.26],["Hemmaseger inkl. förl.",3,v=>pc(v,0),.5,.7],["Avgjort på straffar",4,v=>pc(v,0),.04,.12]].forEach(([title,k,f,lo,hi])=>{
+    const d=document.createElement("div");d.innerHTML=`<b>${title}</b>`;host.appendChild(d);
+    const box=document.createElement("div");box.className="chart";d.appendChild(box);
+    const W=280,H=150,m={l:40,r:10,t:10,b:22};
+    const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":title},box), tip=tipFor(box);
+    const x=i=>m.l+i*(W-m.l-m.r)/(L.length-1), y=q=>m.t+(hi-q)/(hi-lo)*(H-m.t-m.b);
+    [lo,(lo+hi)/2,hi].forEach(q=>{el("line",{x1:m.l,x2:W-m.r,y1:y(q),y2:y(q),stroke:v("grid")},svg);txt(svg,m.l-6,y(q)+4,f(q),{"text-anchor":"end","font-size":10.5})});
+    [0,L.length-1].forEach(i=>txt(svg,x(i),H-6,L[i][0],{"text-anchor":i?"end":"start","font-size":10.5}));
+    el("path",{d:L.map((r,i)=>(i?"L":"M")+x(i)+","+y(r[k])).join(""),fill:"none",stroke:v("green"),"stroke-width":2},svg);
+    L.forEach((r,i)=>{el("circle",{cx:x(i),cy:y(r[k]),r:3.5,fill:v("green"),stroke:v("card"),"stroke-width":1.5},svg);
+      const hit=el("rect",{x:x(i)-12,y:m.t,width:24,height:H-m.t-m.b,fill:"transparent"},svg);
+      hit.addEventListener("mouseenter",()=>{const [px,py]=toPx(svg,W,H,x(i),y(r[k])-6);tip.show(`${r[0]}: ${f(r[k])}`,px,py)});
+      hit.addEventListener("mouseleave",tip.hide)});
+  });
 })();
 </script>

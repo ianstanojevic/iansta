@@ -109,10 +109,72 @@ def evaluate(labels, market, probs, odds, bank, prior, src, scn):
     return rows
 
 
+def next_game() -> pd.Series:
+    g = pd.read_csv(PROCESSED / "games.csv")
+    up = g[((g.home == "FBK") | (g.away == "FBK")) & ~g.played].sort_values(["date", "time"])
+    if up.empty:
+        sys.exit("Ingen kommande Färjestad-match i schemat.")
+    return up.iloc[0]
+
+
+def fill_unibet(args, mo: pd.DataFrame, H: str, A: str) -> bool:
+    """Copy Unibet's current prices from the feed into the market arguments."""
+    if mo.empty or "Unibetse" not in set(mo.book):
+        return False
+    u = mo[mo.book == "Unibetse"]
+
+    def price(market, scope, side, line=None):
+        q = u[(u.market == market) & (u.side == side)]
+        if scope:
+            q = q[q.scope == scope]
+        if line is not None:
+            q = q[q.line == line]
+        return float(q.close.iloc[0]) if len(q) and q.close.iloc[0] > 1 else None
+
+    x = [price("HOME_DRAW_AWAY", "FULL_TIME", s) for s in ("home", "draw", "away")]
+    args.x = x if all(x) else None
+    ml = [price("HOME_AWAY", "FULL_TIME_OVER_TIME", s) for s in ("home", "away")]
+    args.ml = ml if all(ml) else None
+    args.hcp = []
+    for side, team, other in (("home", H, A), ("away", A, H)):
+        a, b = price("ASIAN_HANDICAP", None, side, -1.5), price("ASIAN_HANDICAP", None,
+                                                                "away" if side == "home" else "home", 1.5)
+        if a and b:
+            args.hcp += [[team, "-1.5", str(a)], [other, "1.5", str(b)]]
+    for scope, dest in (("FULL_TIME", "tot"), ("FULL_TIME_OVER_TIME", "totot")):
+        t = u[(u.market == "OVER_UNDER") & (u.scope == scope)].pivot_table(index="line", columns="side",
+                                                                          values="close", aggfunc="first")
+        if {"over", "under"} <= set(t.columns) and len(t.dropna()):
+            t = t.dropna()
+            L = (t.over - t.under).abs().idxmin()   # Unibet's main line
+            setattr(args, dest, [[L, t.at[L, "over"], t.at[L, "under"]]])
+    return bool(args.x or args.tot or args.totot)
+
+
+def print_fair(ms, p_ot, scn, H, A) -> None:
+    rows = []
+    m = ms[WEIGHTS[scn]["x"][0]]
+    for name, (pw, pl, _) in zip([f"1 {H}", "X", f"2 {A}"], outcome_probs(m, p_ot, "x")):
+        rows.append((name, pw))
+    for name, (pw, pl, _) in zip([f"{H} inkl. förl.", f"{A} inkl. förl."],
+                                 outcome_probs(ms[WEIGHTS[scn]["ml"][0]], p_ot, "ml")):
+        rows.append((name, pw))
+    for L in (4.5, 5.5):
+        for mk, tag in (("tot", "ord. tid"), ("totot", "inkl. förl.")):
+            (o, u, ps), _ = outcome_probs(m, p_ot, mk, line=L)
+            rows.append((f"Över {L:g} ({tag})", o))
+            rows.append((f"Under {L:g} ({tag})", u))
+    for name, p in rows:
+        print(f"  {name:<26} {p * 100:5.1f} %   rättvisa odds {1 / p:5.2f}")
+    print("Spela bara om Unibets odds är klart högre än de rättvisa (och helst på antal mål).")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--opp", required=True, help="motståndare, t.ex. Luleå / LHF")
-    loc = ap.add_mutually_exclusive_group(required=True)
+    ap.add_argument("--next", action="store_true",
+                    help="nästa Färjestad-match, med Unibets odds hämtade automatiskt")
+    ap.add_argument("--opp", help="motståndare, t.ex. Luleå / LHF")
+    loc = ap.add_mutually_exclusive_group()
     loc.add_argument("--home", action="store_true", help="Färjestad spelar hemma")
     loc.add_argument("--away", action="store_true", help="Färjestad spelar borta")
     ap.add_argument("--date", help="matchdatum YYYY-MM-DD (default: nästa match mot motståndaren)")
@@ -129,6 +191,12 @@ def main(argv=None):
     ap.add_argument("--bankroll", type=float, help="default: senaste bankrulle i tracker.csv")
     ap.add_argument("--no-fetch", action="store_true", help="hämta inte marknadsodds (jämför mot Unibets)")
     args = ap.parse_args(argv)
+    if args.next:
+        nxt = next_game()
+        args.opp = nxt.away if nxt.home == "FBK" else nxt.home
+        args.home, args.away, args.date = nxt.home == "FBK", nxt.away == "FBK", nxt.date
+    if not args.opp or not (args.home or args.away):
+        ap.error("ange --next, eller --opp och --home/--away")
 
     opp = team_key(args.opp)
     g, game, pr, nth = find_game(opp, args.home, args.date)
@@ -164,6 +232,15 @@ def main(argv=None):
     print(goalie_note)
     print(f"Marknad: {n_books} svenska bookmakers hämtade" if n_books else
           "Marknad: kunde inte hämta bookmakers, jämför mot Unibets egna odds")
+
+    if args.next and not any([args.x, args.ml, args.hcp, args.tot, args.totot]):
+        filled = fill_unibet(args, mo, H, A)
+        if not filled:
+            print("Unibet har inte släppt odds för matchen än (brukar komma 1–2 dagar före). "
+                  "Modellens rättvisa odds:")
+            print_fair(ms, p_ot, scn, H, A)
+            return None
+        print("Unibets odds hämtade automatiskt.")
 
     def cons(*a, **k):
         p, n = live.consensus(mo, *a, **k)
