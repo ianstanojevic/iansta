@@ -30,7 +30,7 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.12"
-      - run: uv venv && uv pip install -e ".[train,dev]"
+      - run: uv venv && uv pip install -e ".[app,train,dev]"
       - run: uv run --no-sync ruff check .
       - run: uv run --no-sync ruff format --check .
       - run: uv run --no-sync mypy
@@ -47,5 +47,10 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.12"
-      - run: uv venv && uv pip install -e ".[train,dev]"
+      - name: Qt system libraries
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -q && sudo apt-get install -y -q libegl1 libxkbcommon0 libfontconfig1
+      - run: uv venv && uv pip install -e ".[app,train,dev]"
       - run: uv run --no-sync pytest -m "not network"
+        env:
+          QT_QPA_PLATFORM: offscreen

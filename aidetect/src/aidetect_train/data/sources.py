@@ -35,6 +35,10 @@ class SourceSpec(BaseModel):
     )
     use: Use
     ood_set: str = ""
+    holdout_fraction: float = Field(
+        default=0.0,
+        description="for training sources: share of groups kept out as the `ood_set` test set",
+    )
     loader: str
     loader_options: dict[str, Any] = Field(default_factory=dict)
     attribution: str
@@ -48,8 +52,8 @@ class SourceSpec(BaseModel):
             raise ValueError(f"{self.id}: a licence claim needs licence_evidence")
         if self.use == "eval_only" and not self.ood_set:
             raise ValueError(f"{self.id}: eval_only sources need an ood_set name")
-        if self.use == "train" and self.ood_set:
-            raise ValueError(f"{self.id}: training sources cannot belong to an OOD set")
+        if self.use == "train" and bool(self.ood_set) != (self.holdout_fraction > 0):
+            raise ValueError(f"{self.id}: a training source has an ood_set only with a holdout")
         return self
 
     @property

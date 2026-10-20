@@ -92,6 +92,7 @@ def load_source(spec: SourceSpec, config: DataBuildConfig) -> tuple[pd.DataFrame
         docs, source=spec.id, licence=spec.licence, use=spec.use, ood_set=spec.ood_set
     )
     frame["doc_id"] = frame["doc_id"].astype(str)
+    frame["holdout_fraction"] = spec.holdout_fraction
     result.loaded = len(frame)
     if config.max_docs_per_source:
         frame = subsample_groups(frame, config.max_docs_per_source, config.seed)
@@ -147,6 +148,7 @@ def build(config: DataBuildConfig) -> BuildResult:
         results.append(result)
     combined = pd.concat(frames, ignore_index=True)
     validate_frame(combined)
+    combined["holdout_fraction"] = combined["holdout_fraction"].astype(float)
 
     log.info("deduplicating %d documents", len(combined))
     deduped, dedup_report = deduplicate(
@@ -177,7 +179,7 @@ def build(config: DataBuildConfig) -> BuildResult:
 
     split_info: dict[str, object] = {}
     for split in SPLITS:
-        part = deduped[deduped["split"] == split].drop(columns="split")
+        part = deduped[deduped["split"] == split].drop(columns=["split", "holdout_fraction"])
         path = out_dir / f"{split}.parquet"
         part.to_parquet(path, index=False)
         split_info[split] = {

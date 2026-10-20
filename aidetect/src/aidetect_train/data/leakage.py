@@ -91,6 +91,7 @@ def check_leakage(
             report.near_overlaps.append((str(frame.at[int(hit), "doc_id"]), str(doc_id)))
 
     in_distribution = frame["split"] != "ood"
+    # (a training source's held-out part is in "ood" by design and fine)
     report.eval_sources_in_training = sorted(
         frame.loc[in_distribution & (frame["use"] == "eval_only"), "source"].unique()
     )

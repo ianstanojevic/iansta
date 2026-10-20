@@ -1,0 +1,102 @@
+name: aidetect installers
+
+# Builds the Windows installer and macOS disk images, smoke-tests each built
+# app, and (for tags like aidetect-v0.1.0) publishes them as a GitHub release.
+on:
+  push:
+    tags: ["aidetect-v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    working-directory: aidetect
+    shell: bash
+
+jobs:
+  build:
+    name: Build (${{ matrix.label }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest, label: Windows }
+          - { os: macos-15, label: macOS-AppleSilicon }
+          - { os: macos-15-intel, label: macOS-Intel }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ".[app]" pyinstaller pillow
+      - name: Version
+        id: version
+        run: echo "version=$(python -c 'import aidetect; print(aidetect.__version__)')" >> "$GITHUB_OUTPUT"
+      - name: Icons
+        run: python packaging/make_icon.py packaging/build
+      - name: Freeze the app
+        run: |
+          ICON=packaging/build/icon.icns; [ "$RUNNER_OS" = Windows ] && ICON=packaging/build/icon.ico
+          SEP=":"; [ "$RUNNER_OS" = Windows ] && SEP=";"
+          pyinstaller --noconfirm --windowed --name "AI Text Detector" --icon "$ICON" \
+            --osx-bundle-identifier io.github.ianstanojevic.aidetect \
+            --add-data "src/aidetect/models${SEP}aidetect/models" \
+            --add-data "src/aidetect/app/icon.png${SEP}aidetect/app" \
+            --collect-data py3langid --collect-data docx \
+            --copy-metadata aidetect \
+            packaging/launch.py
+      - name: Smoke test (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          QT_QPA_PLATFORM=offscreen "dist/AI Text Detector/AI Text Detector.exe" --self-test > selftest.log 2>&1 || (cat selftest.log; exit 1)
+          cat selftest.log
+      - name: Smoke test (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          QT_QPA_PLATFORM=offscreen "dist/AI Text Detector.app/Contents/MacOS/AI Text Detector" --self-test
+      - name: Windows installer
+        if: runner.os == 'Windows'
+        run: |
+          choco install innosetup -y --no-progress >/dev/null || true
+          "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" //DAppVersion=${{ steps.version.outputs.version }} packaging/windows.iss
+      - name: macOS disk image
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p dmg && cp -R "dist/AI Text Detector.app" dmg/ && ln -s /Applications dmg/Applications
+          hdiutil create -volname "AI Text Detector" -srcfolder dmg -ov -format UDZO \
+            "dist/AI-Text-Detector-${{ steps.version.outputs.version }}-${{ matrix.label }}.dmg"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.label }}
+          path: |
+            aidetect/dist/*.exe
+            aidetect/dist/*.dmg
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    if: startsWith(github.ref, 'refs/tags/aidetect-v')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: installers
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: installers/*
+          body: |
+            Download the file for your computer:
+            - **Windows**: `AI-Text-Detector-…-Windows-Setup.exe`
+            - **Mac with Apple chip (M1 or later)**: `…-macOS-AppleSilicon.dmg`
+            - **Older Intel Mac**: `…-macOS-Intel.dmg`
+
+            The installers are not code-signed, so your computer will warn you the
+            first time. See the install steps in the README.

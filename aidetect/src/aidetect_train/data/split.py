@@ -52,4 +52,8 @@ def assign_splits(frame: pd.DataFrame, fractions: dict[str, float], seed: int) -
     by_group = {g: pick(g) for g in frame["group_id"].unique()}
     split = frame["group_id"].map(by_group)
     split[frame["use"] == "eval_only"] = "ood"
+    if "holdout_fraction" in frame.columns:
+        # Part of a training source held out whole, by group, as its own test set.
+        u = frame["group_id"].map(lambda g: _unit_hash(seed + 1, g))
+        split[(frame["use"] == "train") & (u < frame["holdout_fraction"])] = "ood"
     return split.rename("split")

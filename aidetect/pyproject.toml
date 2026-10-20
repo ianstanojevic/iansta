@@ -16,15 +16,21 @@ classifiers = [
     "Operating System :: MacOS",
     "Private :: Do Not Upload",
 ]
-# Runtime dependencies are what ships inside the desktop app. Keep this list
-# short and free of PyTorch: inference runs on ONNX Runtime.
+# Runtime dependencies are what ships inside the desktop app; keep them small.
+# scikit-learn is pinned to the minor version the bundled model was saved with.
 dependencies = [
     "numpy>=1.26",
     "py3langid>=0.3",
+    "scikit-learn>=1.9,<1.10",
+    "joblib>=1.3",
+    "python-docx>=1.1",
+    "pypdf>=4",
 ]
 
 [project.optional-dependencies]
+app = ["PySide6>=6.7"]
 train = [
+    "matplotlib>=3.8",
     "pandas>=2.2",
     "pyarrow>=16",
     "pyyaml>=6",
@@ -42,7 +48,11 @@ dev = [
 ]
 
 [project.scripts]
+aidetect = "aidetect.cli:main"
 aidetect-data = "aidetect_train.data.cli:main"
+
+[project.gui-scripts]
+aidetect-app = "aidetect.app.main:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/aidetect", "src/aidetect_train"]
@@ -59,13 +69,18 @@ ignore = [
     "D107",    # __init__ documented on the class
     "PLR0913", # data-plumbing functions legitimately take many arguments
     "PLR2004", # thresholds are named where they matter
+    "PLC0415", # deferred imports keep app and CLI start-up fast
+    "RUF001",  # text-processing code handles typographic characters on purpose
+    "RUF003",
 ]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["D", "PLR2004", "PLC0415", "RUF001"]  # tests use confusable letters on purpose
+"tests/**" = ["D", "PLR2004"]
+"src/aidetect/app/**" = ["D102", "PLR0915"]  # Qt slots; one window constructor
+"src/aidetect_train/evaluate.py" = ["PLR0915"]  # one linear report generator
 
 [tool.mypy]
 python_version = "3.12"
@@ -74,7 +89,7 @@ mypy_path = "src"
 packages = ["aidetect", "aidetect_train"]
 
 [[tool.mypy.overrides]]
-module = ["datasketch.*", "pyarrow.*", "huggingface_hub.*", "py3langid.*"]
+module = ["datasketch.*", "pyarrow.*", "huggingface_hub.*", "py3langid.*", "sklearn.*", "joblib.*", "docx.*", "matplotlib.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

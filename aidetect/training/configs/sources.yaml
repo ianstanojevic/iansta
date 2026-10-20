@@ -102,15 +102,17 @@ sources:
     revision: cca3b817eb6d0bf7a60f885f3022696553eabb63
     licence: mit
     licence_evidence: [LICENSE]
-    use: eval_only
+    use: train
+    holdout_fraction: 0.5
     ood_set: edited_ai
     loader: beemo
     attribution: >-
       Artemova et al. "Beemo: Benchmark of Expert-edited Machine-generated
       Outputs". NAACL 2025.
     notes: >-
-      Kept out of training on purpose: it is the main test of whether the detector
-      still works after a person edits AI text.
+      Half of its prompts (whole groups) train the model, adding instruction-style
+      human answers and ten more generators; the other half is held out as the
+      edited-AI test set.
 
   - id: apt_eval
     name: APT-Eval (AI-polished human writing)
