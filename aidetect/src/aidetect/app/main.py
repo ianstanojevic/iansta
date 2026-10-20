@@ -410,8 +410,36 @@ def about_html(detector: Detector | None, metrics: dict[str, Any]) -> str:
     )
 
 
+def self_test(log: Path) -> int:
+    """Headless check of a frozen build: load the model, analyse, build the window.
+
+    Never opens a dialog (with no screen it would wait forever); writes the
+    outcome, or the full traceback, to ``log``, since windowed apps on Windows
+    have no console.
+    """
+    import traceback
+
+    try:
+        result = Detector().analyse(SELF_TEST_TEXT)
+        if result.probability is None:
+            raise RuntimeError("self-test text produced no score")
+        app = QApplication.instance() or QApplication(sys.argv)
+        window = MainWindow()
+        window.show_result(result)
+        window.worker_thread.quit()
+        window.worker_thread.wait(10000)
+        del app
+        log.write_text(f"self-test OK: {result.band_label} {result.probability:.3f}\n")
+        return 0
+    except Exception:
+        log.write_text("self-test FAILED\n" + traceback.format_exc())
+        return 1
+
+
 def main() -> int:
     """Start the app."""
+    if "--self-test" in sys.argv:
+        return self_test(Path("selftest.log").resolve())
     app = QApplication(sys.argv)
     app.setApplicationName(APP_NAME)
     icon = resource("icon.png")
@@ -420,17 +448,6 @@ def main() -> int:
     app.setStyleSheet(STYLE)
     window = MainWindow()
     window.show()
-    if "--self-test" in sys.argv:
-        # Used by CI on the packaged app: load the model, analyse, exit.
-        def probe() -> None:
-            if window.worker.detector is None:
-                QTimer.singleShot(200, probe)
-                return
-            result = window.worker.detector.analyse(SELF_TEST_TEXT)
-            print("self-test:", result.band_label, result.probability)
-            app.exit(0 if result.probability is not None else 1)
-
-        QTimer.singleShot(200, probe)
     return app.exec()
 
 

@@ -58,15 +58,16 @@ jobs:
             --collect-data py3langid --collect-data docx \
             --copy-metadata aidetect \
             packaging/launch.py
-      - name: Smoke test (Windows)
-        if: runner.os == 'Windows'
+      - name: Smoke test
+        timeout-minutes: 5
+        env:
+          QT_QPA_PLATFORM: offscreen
         run: |
-          QT_QPA_PLATFORM=offscreen "dist/AI Text Detector/AI Text Detector.exe" --self-test > selftest.log 2>&1 || (cat selftest.log; exit 1)
-          cat selftest.log
-      - name: Smoke test (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          QT_QPA_PLATFORM=offscreen "dist/AI Text Detector.app/Contents/MacOS/AI Text Detector" --self-test
+          APP="dist/AI Text Detector/AI Text Detector.exe"
+          [ "$RUNNER_OS" = macOS ] && APP="dist/AI Text Detector.app/Contents/MacOS/AI Text Detector"
+          status=0; "$APP" --self-test || status=$?
+          cat selftest.log || echo "no self-test log written"
+          exit $status
       - name: Windows installer
         if: runner.os == 'Windows'
         run: |
