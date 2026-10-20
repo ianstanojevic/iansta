@@ -388,34 +388,34 @@ and the top explanations. Exit codes are documented.
 - **Regression**: a pinned 300-document "golden" evaluation set whose metrics
   must not drop by more than tolerance between model versions.
 
-## 11. Compute plan and cost checkpoints
+## 11. Compute and budget (revised 2026-10-20)
 
-**Budget: $63 of cloud GPU credit, usable until 5 November 2026. No other
-spending** (no paid APIs, no code-signing certificates). The original
-30–65 GPU-hour estimate does not fit, so the plan is cut to what buys the most
-accuracy per hour, and run as **one or two well-tested batch sessions** rather
-than open-ended experimentation.
+There is **no GPU**. The budget is about **$50 of Claude cloud-session
+credit**, which pays for the assistant's work; the session container is
+CPU-only (4 cores, 15 GB RAM). Milestone 1 used about $13. The design is
+re-scoped to what a CPU can train:
 
-Every GPU stage is written and tested end to end on CPU first, with the
-laptop config and tiny models, so that GPU time is spent only on the real run.
-Each stage checkpoints and can resume, so a dropped connection does not waste
-credit.
+- **Classifier**: a linear model on word and character n-gram TF-IDF features
+  replaces the fine-tuned DeBERTa. It trains in minutes, is a few MB, and is
+  fast in the app. It generalises worse to unseen domains than a fine-tuned
+  transformer, which the evaluation will show.
+- **Zero-shot signals**: one tiny base/instruct pair (SmolLM2-135M, Apache-2.0)
+  on CPU, documents truncated to 256 tokens, on a subsample of about 15K
+  training documents. This needs `huggingface.co` network access; without it
+  the app ships stylometry + n-gram classifier only.
+- **Dropped**: synthetic text from current open models (needs a GPU). Coverage
+  of the newest models comes only from public datasets, and the app says so.
+- **Unchanged**: stylometry, meta-classifier, Venn-Abers calibration and
+  thresholds, the evaluation report, the app, the CLI and packaging. Installers
+  build on GitHub Actions, which costs no credit.
 
-| Stage | What | Estimate (A100 80 GB) | Priority |
-|---|---|---|---|
-| G1 | Mirror generation: about 8 current open-weight instruct models (7–14B, via vLLM), about 6K documents each, matched to human texts' topic, genre and length; plus an edit/paraphrase pass over 15K AI texts with one model | 4–5 h | essential: fills the "modern generators" gap |
-| G2 | Zero-shot features: 4 candidate small LM pairs on a 15K subset, then the chosen pair on everything | 2–3 h | essential |
-| G3 | Classifier: DeBERTa-v3-base (one run, two epochs), then one hard-negative mining round and retrain; distil to a small on-device model and export to ONNX | 5–7 h | essential |
-| G4 | Second seed and a ModernBERT comparison | 2–3 h | only if credit remains |
-| **Total** | | **about 13–18 GPU-h** | |
+Rough allocation: M2+M3 (features and classifiers) $12, M4 (ensemble and
+calibration) $5, M5 (evaluation report) $5, M6 (app and CLI) $12, M7
+(packaging, CI, docs) $10, which is about $44 with roughly $6 margin.
 
-At typical on-demand prices that is roughly $20–$45 on an A100 from
-GPU-focused clouds, or more on the large general clouds (where an L4 at a
-quarter of the price and about a third of the speed may be the better buy).
-**The exact plan and cost depend on which provider the credit is with**, and I
-will confirm both before anything is started. If the credit cannot be spent in
-time, nothing breaks: CPU-trainable parts (stylometry, the meta-classifier,
-calibration) still work, and the GPU stages can run later at your own pace.
+Cost discipline: start each milestone in a **fresh session** (a long session
+resends its whole history with every step, which is what makes it expensive),
+iterate on the laptop-scale build, and avoid repeated full rebuilds.
 
 ## 12. Risks and mitigations
 
@@ -448,8 +448,8 @@ calibration) still work, and the GPU stages can run later at your own pace.
 
 1. Plan approved.
 2. The project stays in `aidetect/` in this repository.
-3. GPU: $63 of credit, to be used before 5 November (see §11). Provider to be
-   confirmed.
+3. No GPU: the "credits" are Claude cloud-session credit (about $50 left after
+   Milestone 1). Everything runs on CPU; see §11.
 4. No paid frontier-model APIs. All synthetic training text comes from
    open-weight models run on the GPU.
 5. Non-commercial data (ELLIPSE, PERSUADE) is used in training; the model is
@@ -483,3 +483,26 @@ calibration) still work, and the GPU stages can run later at your own pace.
 - **Deduplication now works on whole groups**: a training text that matches
   an evaluation text removes its whole group (including AI rewrites of it),
   and near-duplicate groups are merged so they always share a split.
+
+## 16. Resuming in a new session
+
+The container is rebuilt for every session, and `data/` is not committed, so
+a new session starts by recreating the environment and the dataset:
+
+```bash
+cd aidetect
+uv venv -p 3.12 .venv && . .venv/bin/activate && uv pip install -e ".[train,dev]"
+pytest -q                                              # 75 tests, about 5 s
+aidetect-data build training/configs/data_laptop.yaml  # quick, clones the git sources
+aidetect-data build training/configs/data_available.yaml  # full, about 15 min
+```
+
+If `huggingface.co` is allowed, add `raid`, `hc3` and `mage` to a build
+(see `data_full.yaml`); their revisions are `unpinned`, so the first fetch
+prints the commit to pin in `sources.yaml`.
+
+**Next: Milestone 2+3** (one session): `src/aidetect/stylometry/` (runtime,
+NumPy only), the n-gram TF-IDF classifier (training in
+`src/aidetect_train/classifier/`, exported as plain arrays the app can score
+without scikit-learn), and, if the network allows, the SmolLM2-135M zero-shot
+features. Report baseline metrics, including FPR on the non-native sets.
