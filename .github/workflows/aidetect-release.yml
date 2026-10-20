@@ -5,6 +5,7 @@ name: aidetect installers
 on:
   push:
     tags: ["aidetect-v*"]
+    branches: ["**"]
     # Untagged pushes that touch the app also build (and smoke-test) the
     # installers, available as workflow artefacts, without publishing.
     paths:
