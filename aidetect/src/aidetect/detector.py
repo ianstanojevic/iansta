@@ -10,6 +10,11 @@ from typing import Any
 import joblib
 import numpy as np
 
+# The model bundle pickles these classes. Importing them explicitly also lets
+# PyInstaller see that the frozen app needs scikit-learn.
+import sklearn.feature_extraction.text
+import sklearn.pipeline  # noqa: F401
+
 from aidetect.calibration import VennAbers
 from aidetect.core.text import Span, count_words, normalise_text, split_sentences
 from aidetect.reliability import ReliabilityWarning, check

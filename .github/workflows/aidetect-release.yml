@@ -56,6 +56,7 @@ jobs:
             --add-data "src/aidetect/models${SEP}aidetect/models" \
             --add-data "src/aidetect/app/icon.png${SEP}aidetect/app" \
             --collect-data py3langid --collect-data docx \
+            --collect-submodules sklearn.feature_extraction --hidden-import sklearn.pipeline \
             --copy-metadata aidetect \
             packaging/launch.py
       - name: Smoke test
