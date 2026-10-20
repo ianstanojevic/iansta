@@ -208,3 +208,25 @@ def test_app_window_renders_offscreen(detector: Detector) -> None:
     window.worker_thread.wait(5000)
     window.close()
     del app
+
+
+def test_theme_is_readable_in_system_dark_mode() -> None:
+    # Regression: under Windows dark mode Qt handed the app light text, which
+    # was drawn on the app's light backgrounds and became invisible.
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    pytest.importorskip("PySide6")
+    from PySide6.QtGui import QColor, QPalette
+    from PySide6.QtWidgets import QApplication
+
+    from aidetect.app.main import apply_theme
+
+    app = QApplication.instance() or QApplication([])
+    dark = QPalette()
+    dark.setColor(QPalette.ColorRole.Text, QColor("#f0f0f0"))
+    dark.setColor(QPalette.ColorRole.WindowText, QColor("#f0f0f0"))
+    app.setPalette(dark)
+    apply_theme(app)
+    palette = app.palette()
+    for role in (QPalette.ColorRole.Text, QPalette.ColorRole.WindowText):
+        assert palette.color(role).lightness() < 80
+    assert palette.color(QPalette.ColorRole.Base).lightness() > 200

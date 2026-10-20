@@ -14,9 +14,9 @@ or `.pdf` file, and it gives you:
 
 ![The app analysing an AI-written sample](docs/img/result-ai.png)
 
-*An AI-written sample: it scores 97% AI-likeness, but the app still says
-"Inconclusive", because it only gives an AI verdict when the evidence is very
-strong. This caution is deliberate (see accuracy below).*
+*An AI-written sample of about 200 words, judged "Likely AI-generated". The
+app only gives that verdict when the evidence is very strong; with less text,
+or text from unfamiliar sources, it often stays "Inconclusive" (see accuracy below).*
 
 > **Please read [Limitations](#limitations) before relying on a result.**
 > AI detection is guesswork with statistics. Never use this tool as the only

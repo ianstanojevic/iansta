@@ -9,8 +9,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-from PySide6.QtCore import QObject, QSettings, QThread, QTimer, Signal
-from PySide6.QtGui import QAction, QDragEnterEvent, QDropEvent, QFont, QIcon
+from PySide6.QtCore import QObject, QSettings, Qt, QThread, QTimer, Signal
+from PySide6.QtGui import QAction, QColor, QDragEnterEvent, QDropEvent, QIcon, QPalette
 from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -29,7 +29,8 @@ from PySide6.QtWidgets import (
 )
 
 from aidetect import __version__
-from aidetect.detector import Detector, Result, describe_score
+from aidetect.core.text import count_words
+from aidetect.detector import Detector, Result
 from aidetect.ingest import SUPPORTED, UnsupportedFileError, read_file
 from aidetect.texts import APP_NAME, HOW_IT_WORKS, LIMITATIONS, PRIVACY
 
@@ -45,18 +46,71 @@ BAND_NOTES = {
     "inconclusive": "Mixed signals. Plenty of human writing scores like this, so no verdict.",
     "likely_human": "Little resemblance to AI writing. This does not prove a person wrote it.",
 }
-STYLE = """
-QWidget { font-size: 14px; }
-QMainWindow, QWidget#root { background: #f6f7f9; }
-QTextEdit, QTextBrowser { background: white; border: 1px solid #d0d4da; border-radius: 8px;
-                          padding: 8px; }
-QPushButton { padding: 8px 18px; border-radius: 6px; border: 1px solid #b0b6bf; background: white; }
-QPushButton#primary { background: #1f5fbf; color: white; border: none; font-weight: 600; }
-QPushButton#primary:disabled { background: #9db4d8; }
-QFrame#card { background: white; border: 1px solid #d0d4da; border-radius: 10px; }
-QProgressBar { border: 1px solid #d0d4da; border-radius: 6px; background: #eceff3; height: 14px;
-               text-align: center; }
+INK, MUTED, LINE, PAPER, CANVAS, ACCENT = (
+    "#1f2933",
+    "#5f6b7a",
+    "#d9dee5",
+    "#ffffff",
+    "#eef1f5",
+    "#2563eb",
+)
+# Every widget gets explicit colours, so a dark system theme (which hands Qt a
+# light text colour) can never leave light text on these light backgrounds.
+STYLE = f"""
+* {{ color: {INK}; font-size: 14px; }}
+QMainWindow, QWidget#root, QStatusBar {{ background: {CANVAS}; }}
+QStatusBar {{ color: {MUTED}; font-size: 12px; }}
+QMenuBar {{ background: {CANVAS}; }}
+QMenuBar::item:selected, QMenu::item:selected {{ background: #dbe4f3; color: {INK}; }}
+QMenu {{ background: {PAPER}; border: 1px solid {LINE}; }}
+QLabel#title {{ font-size: 22px; font-weight: 700; }}
+QLabel#subtitle, QLabel#muted {{ color: {MUTED}; }}
+QLabel#score {{ font-size: 44px; font-weight: 700; }}
+QTextEdit, QTextBrowser {{ background: {PAPER}; color: {INK}; border: 1px solid {LINE};
+    border-radius: 12px; padding: 12px; selection-background-color: #bcd3f7;
+    selection-color: {INK}; }}
+QPushButton {{ padding: 9px 18px; border-radius: 8px; border: 1px solid {LINE};
+    background: {PAPER}; color: {INK}; }}
+QPushButton:hover {{ background: #f3f6fa; }}
+QPushButton#primary {{ background: {ACCENT}; color: white; border: none; font-weight: 600;
+    padding: 10px 28px; }}
+QPushButton#primary:hover {{ background: #1d4ed8; }}
+QPushButton#primary:disabled {{ background: #9db7ec; color: white; }}
+QFrame#card {{ background: {PAPER}; border: 1px solid {LINE}; border-radius: 14px; }}
+QProgressBar {{ border: none; border-radius: 6px; background: #e6eaf0; max-height: 12px; }}
+QSplitter::handle {{ background: transparent; width: 14px; }}
+QScrollBar:vertical {{ background: transparent; width: 10px; }}
+QScrollBar::handle:vertical {{ background: #c5ccd6; border-radius: 5px; min-height: 30px; }}
+QScrollBar::add-line, QScrollBar::sub-line {{ height: 0; }}
+QMessageBox {{ background: {PAPER}; }}
 """
+
+
+def apply_theme(app: QApplication) -> None:
+    """Fixed light look on every platform, whatever the system theme."""
+    hints = app.styleHints()
+    if hasattr(hints, "setColorScheme"):  # Qt 6.8+
+        hints.setColorScheme(Qt.ColorScheme.Light)
+    app.setStyle("Fusion")
+    palette = QPalette()
+    for role, colour in (
+        (QPalette.ColorRole.Window, CANVAS),
+        (QPalette.ColorRole.WindowText, INK),
+        (QPalette.ColorRole.Base, PAPER),
+        (QPalette.ColorRole.AlternateBase, CANVAS),
+        (QPalette.ColorRole.Text, INK),
+        (QPalette.ColorRole.Button, PAPER),
+        (QPalette.ColorRole.ButtonText, INK),
+        (QPalette.ColorRole.ToolTipBase, PAPER),
+        (QPalette.ColorRole.ToolTipText, INK),
+        (QPalette.ColorRole.PlaceholderText, "#8a94a3"),
+        (QPalette.ColorRole.Highlight, "#bcd3f7"),
+        (QPalette.ColorRole.HighlightedText, INK),
+        (QPalette.ColorRole.Link, ACCENT),
+    ):
+        palette.setColor(role, QColor(colour))
+    app.setPalette(palette)
+    app.setStyleSheet(STYLE)
 
 
 def resource(name: str) -> Path:
@@ -142,45 +196,78 @@ class MainWindow(QMainWindow):
         self.analyse_button.setObjectName("primary")
         self.analyse_button.setEnabled(False)
         self.analyse_button.clicked.connect(self.run)
+        self.word_count = QLabel("0 words")
+        self.word_count.setObjectName("muted")
+        self.input.textChanged.connect(self._update_word_count)
         buttons = QHBoxLayout()
         buttons.addWidget(open_button)
         buttons.addWidget(clear_button)
+        buttons.addSpacing(12)
+        buttons.addWidget(self.word_count)
         buttons.addStretch()
         buttons.addWidget(self.analyse_button)
         left = QWidget()
         left_layout = QVBoxLayout(left)
+        left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.addWidget(self.input)
         left_layout.addLayout(buttons)
 
-        self.verdict = QLabel("Paste a text and press Analyse.")
+        self.verdict = QLabel("No text analysed yet")
+        self.verdict.setObjectName("title")
         self.verdict.setWordWrap(True)
-        self.verdict.setFont(QFont(self.font().family(), 20, QFont.Weight.Bold))
+        self.score = QLabel("")
+        self.score.setObjectName("score")
+        self.score_caption = QLabel("")
+        self.score_caption.setObjectName("muted")
         self.meter = QProgressBar()
         self.meter.setRange(0, 100)
         self.meter.setTextVisible(False)
         self.meter.hide()
-        self.detail = QLabel("")
+        self.detail = QLabel("Paste at least 150 words on the left and press Analyse.")
+        self.detail.setObjectName("muted")
         self.detail.setWordWrap(True)
         card = QFrame()
         card.setObjectName("card")
         card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(20, 18, 20, 18)
+        score_row = QHBoxLayout()
+        score_row.addWidget(self.score)
+        score_row.addWidget(self.score_caption, 1)
         card_layout.addWidget(self.verdict)
+        card_layout.addLayout(score_row)
         card_layout.addWidget(self.meter)
         card_layout.addWidget(self.detail)
         self.report = QTextBrowser()
         self.report.setOpenExternalLinks(True)
+        self.report.setHtml(EMPTY_REPORT)
         right = QWidget()
         right_layout = QVBoxLayout(right)
+        right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.addWidget(card)
         right_layout.addWidget(self.report, 1)
+
+        title = QLabel(APP_NAME)
+        title.setObjectName("title")
+        subtitle = QLabel(
+            "Estimates whether a text was written by AI. Everything stays on this computer."
+        )
+        subtitle.setObjectName("subtitle")
+        header = QVBoxLayout()
+        header.setSpacing(2)
+        header.addWidget(title)
+        header.addWidget(subtitle)
 
         splitter = QSplitter()
         splitter.addWidget(left)
         splitter.addWidget(right)
-        splitter.setSizes([520, 660])
+        splitter.setSizes([540, 640])
         root = QWidget()
         root.setObjectName("root")
-        QVBoxLayout(root).addWidget(splitter)
+        root_layout = QVBoxLayout(root)
+        root_layout.setContentsMargins(22, 16, 22, 10)
+        root_layout.setSpacing(14)
+        root_layout.addLayout(header)
+        root_layout.addWidget(splitter, 1)
         self.setCentralWidget(root)
         self._menus()
         self.statusBar().showMessage(PRIVACY)
@@ -249,13 +336,22 @@ class MainWindow(QMainWindow):
             return
         self.statusBar().showMessage(f"Loaded {path.name}")
 
+    def _update_word_count(self) -> None:
+        n = count_words(self.input.toPlainText())
+        self.word_count.setText(
+            f"{n} words" + ("  (150+ needed for a verdict)" if 0 < n < 150 else "")
+        )
+
     def clear(self) -> None:
         self.input.clear()
         self.report.clear()
         self.meter.hide()
-        self.detail.clear()
-        self.verdict.setText("Paste a text and press Analyse.")
+        self.score.clear()
+        self.score_caption.clear()
+        self.detail.setText("Paste at least 150 words on the left and press Analyse.")
+        self.verdict.setText("No text analysed yet")
         self.verdict.setStyleSheet("")
+        self.report.setHtml(EMPTY_REPORT)
 
     def run(self) -> None:
         text = self.input.toPlainText()
@@ -269,21 +365,24 @@ class MainWindow(QMainWindow):
     def show_result(self, result: Result) -> None:
         self.analyse_button.setEnabled(True)
         self.analyse_button.setText("Analyse")
+        colour = BAND_COLOURS[result.band]
         self.verdict.setText(result.band_label)
-        self.verdict.setStyleSheet(f"color: {BAND_COLOURS[result.band]};")
-        if result.probability is not None and result.low is not None and result.high is not None:
+        self.verdict.setStyleSheet(f"color: {colour};")
+        if result.probability is not None:
+            self.score.setText(f"{result.probability:.0%}")
+            self.score.setStyleSheet(f"color: {colour};")
+            low, high = result.low or 0.0, result.high or 0.0
+            spread = f"plausible range {low:.0%}-{high:.0%}" if high - low >= 0.01 else ""
+            self.score_caption.setText(f"AI-likeness\n{spread}".rstrip())
             self.meter.setValue(round(100 * result.probability))
             self.meter.setStyleSheet(
-                "QProgressBar::chunk { background: "
-                + BAND_COLOURS[result.band]
-                + "; border-radius: 6px; }"
+                "QProgressBar::chunk { background: " + colour + "; border-radius: 6px; }"
             )
             self.meter.show()
-            note = BAND_NOTES[result.band]
-            self.detail.setText(
-                f"<b>{describe_score(result)}</b> · {result.n_words} words<br>{note}"
-            )
+            self.detail.setText(f"{BAND_NOTES[result.band]}  ·  {result.n_words} words")
         else:
+            self.score.clear()
+            self.score_caption.clear()
             self.meter.hide()
             self.detail.setText(f"{result.n_words} words")
         self.report.setHtml(render_report(result))
@@ -328,6 +427,15 @@ def _newer(candidate: str, current: str) -> bool:
     return parts(candidate) > parts(current)
 
 
+EMPTY_REPORT = (
+    f"<div style='color:{MUTED}; margin-top:40px; text-align:center'>"
+    "<p style='font-size:16px'><b>Your result will appear here.</b></p>"
+    "<p>Paste text on the left, or drop a .txt, .docx or .pdf file onto it.</p>"
+    "<p>You will see a verdict, what the detector noticed, and which sentences look most "
+    "AI-like.</p></div>"
+)
+
+
 def _heat_colour(heat: float) -> str:
     # White (relatively human-like) to orange-red (relatively AI-like).
     r, g, b = 255, round(255 - 120 * heat), round(255 - 190 * heat)
@@ -336,7 +444,7 @@ def _heat_colour(heat: float) -> str:
 
 def render_report(result: Result) -> str:
     """HTML for the result panel: warnings, reasons, heatmap, how it works."""
-    parts: list[str] = []
+    parts: list[str] = [f"<div style='color:{INK}'>"]
     warnings = [w for w in result.warnings if w.code != "always"]
     if warnings:
         items = "".join(f"<li>{html.escape(w.message)}</li>" for w in warnings)
@@ -371,6 +479,7 @@ def render_report(result: Result) -> str:
         "<p style='color:#555'><b>This is an estimate, not proof.</b> Never use it as the only "
         "basis for accusing someone. See Help → Limitations.</p>"
     )
+    parts.append("</div>")
     return "".join(parts)
 
 
@@ -445,7 +554,7 @@ def main() -> int:
     icon = resource("icon.png")
     if icon.exists():
         app.setWindowIcon(QIcon(str(icon)))
-    app.setStyleSheet(STYLE)
+    apply_theme(app)
     window = MainWindow()
     window.show()
     return app.exec()
