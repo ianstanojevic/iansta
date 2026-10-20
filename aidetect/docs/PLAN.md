@@ -79,15 +79,17 @@ aidetect/
     models/                 # model manifest, download + SHA-256 verification, cache dir
     cli.py                  # `aidetect file.docx`
     app/                    # PySide6 GUI
-  training/
-    configs/                # YAML: laptop.yaml (tiny), a100.yaml (full)
-    data/                   # download, normalise, dedup, split, licence audit, manifests
+  src/aidetect_train/       # training-side package, never shipped in the app
+    data/                   # registry, fetch, licence audit, loaders, clean, dedup, split,
+                            #   leakage checks, manifests, reports; CLI `aidetect-data`
     generate/               # synthetic mirrors + edits (vLLM on GPU)
     features/               # batch zero-shot + stylometry extraction (GPU or CPU)
-    train_classifier.py     # HF Trainer fine-tune, then distil/export/quantise to ONNX
-    train_ensemble.py       # meta-classifier + calibration + threshold selection
-    evaluate.py             # all metrics, slices, OOD, charts → reports/
-    mine_hard_negatives.py  # Pangram-style loop over pre-2022 human text
+    classifier/             # fine-tune, hard-negative mining, distil/export/quantise to ONNX
+    ensemble/               # meta-classifier + calibration + threshold selection
+    evaluate/               # all metrics, slices, OOD, charts → reports/
+  training/
+    configs/                # sources.yaml (registry) and build/training configs:
+                            #   *_laptop.yaml (tiny, CPU) and *_full.yaml (GPU)
   tests/                    # unit + integration (tiny random-weight ONNX fixtures)
   packaging/                # PyInstaller spec, Inno Setup script, dmg script, icons, entitlements
   reports/                  # generated evaluation report (markdown + PNG charts)
@@ -388,22 +390,32 @@ and the top explanations. Exit codes are documented.
 
 ## 11. Compute plan and cost checkpoints
 
-These are rough estimates for a single A100 80 GB; an H100 is roughly 1.5–2×
-faster. **I will ask before every GPU step**, with a refined estimate based on
-the actual dataset size once Milestone 1 has run.
+**Budget: $63 of cloud GPU credit, usable until 5 November 2026. No other
+spending** (no paid APIs, no code-signing certificates). The original
+30–65 GPU-hour estimate does not fit, so the plan is cut to what buys the most
+accuracy per hour, and run as **one or two well-tested batch sessions** rather
+than open-ended experimentation.
 
-| Step | Estimate | When |
-|---|---|---|
-| Synthetic mirrors + edits with about 12 open models via vLLM (about 60–100K docs) | 10–25 GPU-h | M1 |
-| Zero-shot features for the 5 candidate pairs, on a 20K-doc subset | 1–2 GPU-h | M2 |
-| Zero-shot features for the chosen pair, full set (about 0.5M docs) | 2–4 GPU-h | M2 |
-| Classifier: 3 backbones × 1 seed, then the best × 3 seeds | 10–20 GPU-h | M3 |
-| Hard-negative mining (2–3 rounds of score and retrain) | 6–12 GPU-h | M3 |
-| Distillation + ONNX export | 2–4 GPU-h | M3 |
-| **Total** | **about 30–65 GPU-h** | |
+Every GPU stage is written and tested end to end on CPU first, with the
+laptop config and tiny models, so that GPU time is spent only on the real run.
+Each stage checkpoints and can resume, so a dropped connection does not waste
+credit.
 
-Optional API generation for frontier models is costed separately per million
-tokens once you choose which models.
+| Stage | What | Estimate (A100 80 GB) | Priority |
+|---|---|---|---|
+| G1 | Mirror generation: about 8 current open-weight instruct models (7–14B, via vLLM), about 6K documents each, matched to human texts' topic, genre and length; plus an edit/paraphrase pass over 15K AI texts with one model | 4–5 h | essential: fills the "modern generators" gap |
+| G2 | Zero-shot features: 4 candidate small LM pairs on a 15K subset, then the chosen pair on everything | 2–3 h | essential |
+| G3 | Classifier: DeBERTa-v3-base (one run, two epochs), then one hard-negative mining round and retrain; distil to a small on-device model and export to ONNX | 5–7 h | essential |
+| G4 | Second seed and a ModernBERT comparison | 2–3 h | only if credit remains |
+| **Total** | | **about 13–18 GPU-h** | |
+
+At typical on-demand prices that is roughly $20–$45 on an A100 from
+GPU-focused clouds, or more on the large general clouds (where an L4 at a
+quarter of the price and about a third of the speed may be the better buy).
+**The exact plan and cost depend on which provider the credit is with**, and I
+will confirm both before anything is started. If the credit cannot be spent in
+time, nothing breaks: CPU-trainable parts (stylometry, the meta-classifier,
+calibration) still work, and the GPU stages can run later at your own pace.
 
 ## 12. Risks and mitigations
 
@@ -432,26 +444,42 @@ tokens once you choose which models.
   or, if you give this environment access to your provider, I launch them
   after asking each time.
 
-## 14. Decisions I need from you
+## 14. Decisions (agreed 2026-10-20)
 
-1. **Approve this plan** (or tell me what to change).
-2. **Repository**: keep the project in `aidetect/` inside this repo (the
-   default), or move it to a new dedicated repository (cleaner releases and
-   issue tracker; you would need to create it and add it to this session).
-3. **Network**: allow `huggingface.co` in this environment's network settings.
-   It is needed from Milestone 1 onward to do real work here.
-4. **GPU provider** for your credits (GCP, AWS, Azure, Lambda, RunPod, Modal, …)
-   so the setup instructions and scripts target it directly.
-5. **Frontier API data**: also generate training and evaluation text with paid
-   APIs (GPT, Claude, Gemini) using your keys? This improves coverage of
-   current models; the cost depends on volume, typically tens of dollars for
-   about 10K documents per model.
-6. **Non-commercial data**: ELLIPSE and PERSUADE (the main non-native sources)
-   are CC BY-NC-SA. They are fine for a free tool for friends, but they make the
-   trained model non-commercial. Use them in training (recommended), or for
-   evaluation only?
-7. **Code signing**: Apple Developer ID ($99/yr, removes the Gatekeeper
-   "Open Anyway" step) and/or Windows signing (for example Azure Trusted
-   Signing, about $10/month), or ship unsigned with illustrated instructions?
-8. **Model hosting** for first-launch download: GitHub Releases on the project
-   repo, or a Hugging Face model repo under your account?
+1. Plan approved.
+2. The project stays in `aidetect/` in this repository.
+3. GPU: $63 of credit, to be used before 5 November (see §11). Provider to be
+   confirmed.
+4. No paid frontier-model APIs. All synthetic training text comes from
+   open-weight models run on the GPU.
+5. Non-commercial data (ELLIPSE, PERSUADE) is used in training; the model is
+   therefore non-commercial, which the data card and About page state.
+6. Installers are unsigned. The README and the app's download page walk
+   through the macOS "Open Anyway" and Windows SmartScreen steps with
+   screenshots.
+7. Models are hosted as GitHub Releases assets of this repository and
+   downloaded on first launch.
+
+## 15. Findings during Milestone 1 that changed the plan
+
+- **Hugging Face is blocked from the build environment**, but public GitHub
+  repositories can be cloned. Ghostbuster, ELLIPSE, Beemo, APT-Eval, DetectRL
+  and M4 were all available that way; RAID, HC3 and MAGE wait for network
+  access (or are fetched on the GPU machine, which has internet).
+- **The Ghostbuster repository bundles extra evaluation corpora**: the 91
+  TOEFL essays from Liang et al., ETS non-native essays, PELIC, Lang-8, BAWE,
+  and "humanizer" output. They keep their original licences, so they are
+  evaluation-only, and they give the non-native false-positive measurement
+  four independent test sets instead of one.
+- **ELLIPSE essays contain anonymisation placeholders** (`Generic_Name`,
+  `STUDENT_NAME`, … in 14 % of essays). Left in, they would teach the model
+  "placeholder ⇒ human". They are replaced with ordinary names during
+  cleaning. ELLIPSE's test archive is password-protected, so only its train
+  file (3,911 essays) is used.
+- **DetectRL's own leaderboard** supports the design: fine-tuned RoBERTa reaches
+  AUROC 99.9 in-domain but drops to about 75–83 F1 on unseen domains, generators
+  and attacks, while Binoculars sits around 84 AUROC everywhere. That is the
+  case for combining both, with out-of-distribution numbers as the headline.
+- **Deduplication now works on whole groups**: a training text that matches
+  an evaluation text removes its whole group (including AI rewrites of it),
+  and near-duplicate groups are merged so they always share a split.

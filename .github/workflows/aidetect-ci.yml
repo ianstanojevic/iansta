@@ -1,0 +1,51 @@
+name: aidetect CI
+
+# Lint, type-check and test the AI-text detector in aidetect/. Installer builds
+# are added in a later milestone. Path filters keep this independent of the
+# phase-diagram site's own CI.
+on:
+  push:
+    paths: ["aidetect/**", ".github/workflows/aidetect-ci.yml"]
+  pull_request:
+    paths: ["aidetect/**", ".github/workflows/aidetect-ci.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aidetect-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: aidetect
+
+jobs:
+  lint:
+    name: Lint and type-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - run: uv venv && uv pip install -e ".[train,dev]"
+      - run: uv run --no-sync ruff check .
+      - run: uv run --no-sync ruff format --check .
+      - run: uv run --no-sync mypy
+
+  test:
+    name: Tests (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - run: uv venv && uv pip install -e ".[train,dev]"
+      - run: uv run --no-sync pytest -m "not network"

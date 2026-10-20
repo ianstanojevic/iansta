@@ -1,0 +1,86 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "aidetect"
+version = "0.1.0"
+description = "Offline, calibrated estimate of whether a text was written by AI, with honest uncertainty."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11,<3.14"
+authors = [{ name = "Ian Stanojevic" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
+    "Private :: Do Not Upload",
+]
+# Runtime dependencies are what ships inside the desktop app. Keep this list
+# short and free of PyTorch: inference runs on ONNX Runtime.
+dependencies = [
+    "numpy>=1.26",
+    "py3langid>=0.3",
+]
+
+[project.optional-dependencies]
+train = [
+    "pandas>=2.2",
+    "pyarrow>=16",
+    "pyyaml>=6",
+    "pydantic>=2.7",
+    "datasketch>=1.6",
+    "huggingface_hub>=0.24",
+]
+dev = [
+    "pytest>=8",
+    "hypothesis>=6.100",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "pandas-stubs>=2.2",
+    "types-PyYAML>=6",
+]
+
+[project.scripts]
+aidetect-data = "aidetect_train.data.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/aidetect", "src/aidetect_train"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "D", "N", "PTH", "PL"]
+ignore = [
+    "D105",    # magic methods are self-explanatory
+    "D107",    # __init__ documented on the class
+    "PLR0913", # data-plumbing functions legitimately take many arguments
+    "PLR2004", # thresholds are named where they matter
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D", "PLR2004", "PLC0415", "RUF001"]  # tests use confusable letters on purpose
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = "src"
+packages = ["aidetect", "aidetect_train"]
+
+[[tool.mypy.overrides]]
+module = ["datasketch.*", "pyarrow.*", "huggingface_hub.*", "py3langid.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+    "slow: long-running tests (deselect with -m 'not slow')",
+    "network: needs internet access",
+]

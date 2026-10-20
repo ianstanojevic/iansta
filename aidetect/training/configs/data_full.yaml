@@ -1,0 +1,8 @@
+# The full training build. Needs huggingface.co for RAID, HC3 and MAGE.
+name: full
+sources: [ghostbuster, ellipse, raid, hc3, mage,
+          beemo, apt_eval, detectrl, m4,
+          gb_toefl91, gb_ets, gb_pelic, gb_lang8, gb_bawe, gb_undetectable]
+max_per_cell: 6000
+datacard_path: docs/DATA_SOURCES.md
+seed: 1234

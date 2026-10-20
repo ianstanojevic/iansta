@@ -1,0 +1,6 @@
+# Small, fast build for laptops and CI-style smoke tests (a few minutes on CPU).
+# Same code path as the full build; only subsampled.
+name: laptop
+sources: [ghostbuster, ellipse, beemo, apt_eval, detectrl, gb_toefl91, gb_undetectable]
+max_docs_per_source: 600
+seed: 1234

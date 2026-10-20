@@ -1,0 +1,234 @@
+# Source registry: every dataset the project may use.
+#
+# Rules (enforced by aidetect_train.data.sources / .licence):
+#   - `revision` pins the exact data: a git commit, a Hugging Face commit, or a
+#     file's SHA-256. "unpinned" downloads once, then stops and prints the value
+#     to pin.
+#   - `licence` must be found in the `licence_evidence` files, or the build fails.
+#   - `licence: unknown` (no licence published) can only be `use: eval_only`.
+#   - `eval_only` sources form out-of-distribution test sets and never enter
+#     any training split; deduplication removes training copies of their texts.
+
+sources:
+  # ---------------------------------------------------------------- training
+  - id: ghostbuster
+    name: Ghostbuster (essays, creative writing, news)
+    kind: git
+    location: https://github.com/vivek3141/ghostbuster-data
+    revision: 86ebd72590556a81622986fab736ab9227a948af
+    licence: cc-by-3.0
+    licence_evidence: [LICENSE]
+    use: train
+    loader: ghostbuster
+    loader_options: {domains: [essay, wp, reuter]}
+    attribution: >-
+      Verma, Fleisig, Tomlin, Klein. "Ghostbuster: Detecting Text Ghostwritten by
+      Large Language Models". NAACL 2024.
+    notes: >-
+      Human essays (IvyPanda), r/WritingPrompts stories and Reuters 50-50 news,
+      each with gpt-3.5-turbo and Claude (2023) counterparts written from the same
+      prompt.
+
+  - id: ellipse
+    name: ELLIPSE corpus (English-language-learner essays)
+    kind: git
+    location: https://github.com/scrosseye/ELLIPSE-Corpus
+    revision: dc3b8f0b3b4332fc9f64302c4ccfc4ed582f4b43
+    licence: cc-by-nc-sa-4.0
+    licence_evidence: [README.md]
+    use: train
+    loader: ellipse
+    attribution: >-
+      Crossley, Tian, Baffour, Franklin, Benner, Boser. "A large-scale corpus for
+      assessing written argumentation: PERSUADE 2.0" / "The English Language
+      Learner Insight, Proficiency and Skills Evaluation (ELLIPSE) Corpus". IJLCR 2023.
+    notes: >-
+      Non-native human writing, used as hard negatives so the detector does not
+      learn "simple English = AI". Anonymisation placeholders (Generic_Name ...)
+      are replaced with ordinary names during cleaning. Non-commercial licence.
+
+  - id: raid
+    name: RAID (train split)
+    kind: hf
+    location: liamdugan/raid
+    revision: unpinned
+    licence: mit
+    licence_evidence: [card]
+    use: train
+    loader: raid
+    loader_options: {file: train.csv}
+    attribution: >-
+      Dugan et al. "RAID: A Shared Benchmark for Robust Evaluation of
+      Machine-Generated Text Detectors". ACL 2024.
+    notes: >-
+      11 generators, 8 domains, 4 decoding strategies, 11 adversarial attacks.
+      Needs huggingface.co network access.
+
+  - id: hc3
+    name: HC3 English
+    kind: hf
+    location: Hello-SimpleAI/HC3
+    revision: unpinned
+    licence: cc-by-sa
+    licence_evidence: [card]
+    use: train
+    loader: hc3
+    loader_options: {file: all.jsonl, exclude_sources: [open_qa], allow_patterns: [all.jsonl, README.md]}
+    attribution: >-
+      Guo et al. "How Close is ChatGPT to Human Experts? Comparison Corpus,
+      Evaluation, and Detection". 2023.
+    notes: The open_qa subset (WikiQA, custom licence) is excluded. Needs huggingface.co.
+
+  - id: mage
+    name: MAGE
+    kind: hf
+    location: yaful/MAGE
+    revision: unpinned
+    licence: apache-2.0
+    licence_evidence: [card]
+    use: train
+    loader: mage
+    attribution: >-
+      Li et al. "MAGE: Machine-generated Text Detection in the Wild". ACL 2024.
+    notes: >-
+      27 generators, 10 domains. The GitHub repository says Apache-2.0 in its
+      LICENSE file and CC BY 4.0 in a badge; both are permissive. Needs huggingface.co.
+
+  # ------------------------------------------------- out-of-distribution sets
+  - id: beemo
+    name: Beemo (expert- and LLM-edited model outputs)
+    kind: git
+    location: https://github.com/Toloka/beemo
+    revision: cca3b817eb6d0bf7a60f885f3022696553eabb63
+    licence: mit
+    licence_evidence: [LICENSE]
+    use: eval_only
+    ood_set: edited_ai
+    loader: beemo
+    attribution: >-
+      Artemova et al. "Beemo: Benchmark of Expert-edited Machine-generated
+      Outputs". NAACL 2025.
+    notes: >-
+      Kept out of training on purpose: it is the main test of whether the detector
+      still works after a person edits AI text.
+
+  - id: apt_eval
+    name: APT-Eval (AI-polished human writing)
+    kind: git
+    location: https://github.com/ShoumikSaha/ai-polished-text
+    revision: 53b1d2619a633e025998d6c7d0a12b0228b589da
+    licence: unknown
+    use: eval_only
+    ood_set: ai_polished
+    loader: apt_eval
+    attribution: >-
+      Saha & Feizi. "Almost AI, Almost Human: The Challenge of Detecting
+      AI-Polished Writing". Findings of ACL 2025.
+    notes: Polished texts are labelled "mixed" and reported separately.
+
+  - id: detectrl
+    name: DetectRL
+    kind: git
+    location: https://github.com/NLP2CT/DetectRL
+    revision: 3472f0ae3cc81133c821e901f6d5c8f79c60dd23
+    licence: unknown
+    use: eval_only
+    ood_set: detectrl
+    loader: detectrl
+    attribution: >-
+      Wu et al. "DetectRL: Benchmarking LLM-Generated Text Detection in
+      Real-World Scenarios". NeurIPS 2024 Datasets and Benchmarks.
+    notes: >-
+      Arxiv abstracts, XSum news, WritingPrompts stories and Yelp reviews by
+      ChatGPT, Claude-instant, PaLM-2 and Llama-2-70B, with prompt, paraphrase,
+      typo and back-translation attacks.
+
+  - id: m4
+    name: M4 (English subsets)
+    kind: git
+    location: https://github.com/mbzuai-nlp/M4
+    revision: 628bf0fcb2e8c6b7ffa71fd1af6be413aced8f7d
+    licence: unknown
+    use: eval_only
+    ood_set: m4
+    loader: m4
+    loader_options: {domains: [arxiv, reddit, wikipedia, wikihow]}
+    attribution: >-
+      Wang et al. "M4: Multi-generator, Multi-domain, and Multi-lingual Black-Box
+      Machine-Generated Text Detection". EACL 2024.
+
+  - id: gb_toefl91
+    name: TOEFL essays (Liang et al. 2023, via Ghostbuster)
+    kind: git
+    location: https://github.com/vivek3141/ghostbuster-data
+    revision: 86ebd72590556a81622986fab736ab9227a948af
+    licence: unknown
+    use: eval_only
+    ood_set: non_native
+    loader: ghostbuster_other
+    loader_options: {subset: toefl91}
+    attribution: >-
+      Liang, Yuksekgonul, Mao, Wu, Zou. "GPT detectors are biased against
+      non-native English writers". Patterns 2023.
+    notes: The 91 essays on which seven detectors averaged a 61% false-positive rate.
+
+  - id: gb_ets
+    name: ETS non-native essays (via Ghostbuster)
+    kind: git
+    location: https://github.com/vivek3141/ghostbuster-data
+    revision: 86ebd72590556a81622986fab736ab9227a948af
+    licence: unknown
+    use: eval_only
+    ood_set: non_native
+    loader: ghostbuster_other
+    loader_options: {subset: ets}
+    attribution: Blanchard et al. "ETS Corpus of Non-Native Written English" (LDC2014T06).
+    notes: Redistributed inside the Ghostbuster data; original LDC terms apply, so eval only.
+
+  - id: gb_pelic
+    name: PELIC learner essays (via Ghostbuster)
+    kind: git
+    location: https://github.com/vivek3141/ghostbuster-data
+    revision: 86ebd72590556a81622986fab736ab9227a948af
+    licence: unknown
+    use: eval_only
+    ood_set: non_native
+    loader: ghostbuster_other
+    loader_options: {subset: pelic}
+    attribution: Juffs, Han, Naismith. "The University of Pittsburgh English Language Corpus (PELIC)". 2020.
+
+  - id: gb_lang8
+    name: Lang-8 learner journals (via Ghostbuster)
+    kind: git
+    location: https://github.com/vivek3141/ghostbuster-data
+    revision: 86ebd72590556a81622986fab736ab9227a948af
+    licence: unknown
+    use: eval_only
+    ood_set: non_native
+    loader: ghostbuster_other
+    loader_options: {subset: lang8}
+    attribution: Mizumoto et al. "Lang-8 Learner Corpora". NAIST.
+
+  - id: gb_bawe
+    name: BAWE academic writing (via Ghostbuster)
+    kind: git
+    location: https://github.com/vivek3141/ghostbuster-data
+    revision: 86ebd72590556a81622986fab736ab9227a948af
+    licence: unknown
+    use: eval_only
+    ood_set: academic_human
+    loader: ghostbuster_other
+    loader_options: {subset: bawe}
+    attribution: Nesi, Gardner et al. "British Academic Written English Corpus". Oxford Text Archive.
+
+  - id: gb_undetectable
+    name: Humanizer-processed AI text (via Ghostbuster)
+    kind: git
+    location: https://github.com/vivek3141/ghostbuster-data
+    revision: 86ebd72590556a81622986fab736ab9227a948af
+    licence: unknown
+    use: eval_only
+    ood_set: humanizer
+    loader: ghostbuster_other
+    loader_options: {subset: undetectable}
+    attribution: Verma et al. (Ghostbuster), texts processed by the undetectable.ai service.
