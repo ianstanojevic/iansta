@@ -32,6 +32,28 @@ class TestNormalise:
         raw = "  One\u00a0 two\t three.\r\n\r\n\r\n\r\nNext   para.  \n"
         assert normalise_text(raw) == "One two three.\n\nNext para."
 
+    def test_unwraps_hard_wrapped_paragraphs(self) -> None:
+        raw = (
+            "We present maps of 7.78 square degrees of the Lupus molecular cloud complex\n"
+            "at 24, 70, and 160 microns. They were made with the Spitzer Space Telescope\n"
+            "as part of the legacy programme.\n\nSecond paragraph."
+        )
+        assert normalise_text(raw) == (
+            "We present maps of 7.78 square degrees of the Lupus molecular cloud complex "
+            "at 24, 70, and 160 microns. They were made with the Spitzer Space Telescope "
+            "as part of the legacy programme.\n\nSecond paragraph."
+        )
+
+    def test_keeps_meaningful_line_breaks(self) -> None:
+        kept = [
+            "Short heading\nBody text follows here.",
+            "First sentence of a paragraph that is long enough to look wrapped.\nNext one.",
+            "Here is a list of things that we will need for the trip this weekend\n- tent",
+            "Roses are red\nviolets are blue",
+        ]
+        for text in kept:
+            assert normalise_text(text) == text
+
     def test_drops_control_characters(self) -> None:
         assert normalise_text("a\x00b\x07c") == "abc"
 

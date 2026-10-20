@@ -5,3 +5,4 @@ sources: [ghostbuster, ellipse, beemo, apt_eval, detectrl, m4,
           gb_toefl91, gb_ets, gb_pelic, gb_lang8, gb_bawe, gb_undetectable]
 max_per_cell: 4000
 seed: 1234
+datacard_path: docs/DATA_SOURCES.md

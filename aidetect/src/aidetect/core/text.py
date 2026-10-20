@@ -62,12 +62,42 @@ def _fix_mixed_script_word(match: re.Match[str]) -> str:
     return word
 
 
+# A line is treated as hard-wrapped (as in PDFs, e-mails and arXiv abstracts)
+# when it is long, does not end a sentence, and is not followed by a list item.
+_WRAP_MIN_LINE = 50
+_SENTENCE_END = tuple(".!?:;\"'\u201d\u2019)]")
+_LIST_ITEM = re.compile(r"^\s*(?:[-*\u2022\u2013]|\d+[.)]|[a-z][.)])\s")
+
+
+def unwrap_lines(text: str) -> str:
+    """Join hard-wrapped lines back into paragraphs.
+
+    Short lines, lines ending a sentence, and lines followed by a list item
+    keep their break, so headings, lists, addresses and most verse survive.
+    """
+    out: list[str] = []
+    for line in text.split("\n"):
+        if (
+            out
+            and out[-1].strip()
+            and line.strip()
+            and len(out[-1]) >= _WRAP_MIN_LINE
+            and not out[-1].rstrip().endswith(_SENTENCE_END)
+            and not _LIST_ITEM.match(line)
+        ):
+            out[-1] = out[-1].rstrip() + " " + line.lstrip()
+        else:
+            out.append(line)
+    return "\n".join(out)
+
+
 def normalise_text(text: str) -> str:
     """Return a canonical form of ``text`` for scoring.
 
     Applies NFKC (which also folds "mathematical" look-alike letters and
     ligatures from PDFs), removes invisible characters, repairs mixed-script
-    homoglyphs, unifies line endings and collapses runs of blank space.
+    homoglyphs, unifies line endings, joins hard-wrapped lines and collapses
+    runs of blank space.
     Paragraph breaks (blank lines) are kept because they carry signal.
 
     Args:
@@ -85,6 +115,7 @@ def normalise_text(text: str) -> str:
     text = text.replace("\t", " ")
     text = re.sub(r"[ ]{2,}", " ", text)
     text = re.sub(r" *\n *", "\n", text)
+    text = unwrap_lines(text)
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
 

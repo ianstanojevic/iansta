@@ -57,8 +57,9 @@ def ghostbuster_root(tmp_path: Path) -> Path:
             sub.mkdir(parents=True, exist_ok=True)
             for i in range(2):
                 (sub / f"{i}.txt").write_text(f"{text} ({domain} {variant} {i})")
-            (sub / "logprobs").mkdir(exist_ok=True)
-            (sub / "logprobs" / "0.txt").write_text("-1.2 -3.4")
+            for skipped in ("logprobs", "logprobs_babbage", ".ipynb_checkpoints", "headlines"):
+                (sub / skipped).mkdir(exist_ok=True)
+                (sub / skipped / "0.txt").write_text("not a document")
     other = root / "other" / "toefl91"
     other.mkdir(parents=True)
     (other / "0.txt").write_text(LOREM_HUMAN)

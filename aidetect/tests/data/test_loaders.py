@@ -15,7 +15,9 @@ def load(name: str, root: Path, **options: object) -> list[Doc]:
 
 def test_ghostbuster_pairs_share_groups_and_skip_logprobs(ghostbuster_root: Path) -> None:
     docs = load("ghostbuster", ghostbuster_root, domains=["essay", "reuter"])
-    assert len(docs) == 12  # 2 domains x 3 variants x 2 files; logprobs ignored
+    # 2 domains x 3 variants x 2 files; logprobs*, headlines and hidden folders ignored
+    assert len(docs) == 12
+    assert not any("not a document" in d.text for d in docs)
     by_group: dict[str, set[str]] = {}
     for doc in docs:
         by_group.setdefault(doc.group_id, set()).add(doc.label)

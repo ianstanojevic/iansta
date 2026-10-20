@@ -2,7 +2,9 @@
 
 Layout: ``<domain>/<variant>/<...>/<n>.txt``, where the same relative path in
 ``human/`` and in an AI variant refers to the same prompt. That shared path is
-the group id. ``logprobs/`` folders hold model scores, not text, and are skipped.
+the group id. Folders that do not hold documents are skipped: ``logprobs*``
+(token scores), ``headlines`` and ``prompts`` (generation inputs) and hidden
+folders such as ``.ipynb_checkpoints``.
 
 The ``other/`` folder bundles third-party corpora (TOEFL essays, Lang-8, PELIC,
 BAWE, ...) that keep their original licences, so they are exposed through a
@@ -32,9 +34,13 @@ VARIANTS: dict[str, tuple[Label, str]] = {
 }
 
 
+def _is_document_dir(part: str) -> bool:
+    return not (part.startswith(("logprobs", ".")) or part in {"headlines", "prompts"})
+
+
 def _text_files(folder: Path) -> Iterator[Path]:
     for path in sorted(folder.rglob("*.txt")):
-        if "logprobs" not in path.relative_to(folder).parts:
+        if all(_is_document_dir(part) for part in path.relative_to(folder).parent.parts):
             yield path
 
 

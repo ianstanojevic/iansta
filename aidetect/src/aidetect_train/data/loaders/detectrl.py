@@ -7,11 +7,16 @@ text and every derived variant. All variants of an item share its group.
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
 from aidetect_train.data.schema import Doc, Label
+
+# Generated fields sometimes have sentences glued together ("vibe.Now") or a
+# title glued to the text ("FlameDeep"), from how the dataset was assembled.
+_GLUED_SENTENCE = re.compile(r"(?<=[a-z][.!?])(?=[A-Z][a-z])")
 
 HUMAN_FIELD = {
     "arxiv": "abstract",
@@ -76,8 +81,11 @@ def load(root: Path, options: dict[str, Any]) -> Iterator[Doc]:
                     continue
                 label, edit_type = VARIANTS[field]
                 attacked_human = label == "human"
+                # Only machine-produced fields are repaired: in human text a
+                # missing space is the writer's own and is real signal.
+                cleaned = str(text) if attacked_human else _GLUED_SENTENCE.sub(" ", str(text))
                 yield Doc(
-                    str(text),
+                    cleaned,
                     label,
                     f"{domain}/{item['id']}/{field}",
                     group,
