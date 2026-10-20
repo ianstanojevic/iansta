@@ -5,6 +5,12 @@ name: aidetect installers
 on:
   push:
     tags: ["aidetect-v*"]
+    # Untagged pushes that touch the app also build (and smoke-test) the
+    # installers, available as workflow artefacts, without publishing.
+    paths:
+      - "aidetect/src/aidetect/**"
+      - "aidetect/packaging/**"
+      - ".github/workflows/aidetect-release.yml"
   workflow_dispatch:
 
 permissions:
