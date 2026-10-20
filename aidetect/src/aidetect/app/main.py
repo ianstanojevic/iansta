@@ -405,8 +405,8 @@ def about_html(detector: Detector | None, metrics: dict[str, Any]) -> str:
         f"<th>AI texts caught</th></tr>{table}</table>"
         f"<p>Writing by non-native English speakers:</p><ul>{nn}</ul>"
         f"<p>Trained on: {trained}.</p>"
-        "<p>Full report: <a href='https://github.com/ianstanojevic/iansta/blob/main/aidetect/"
-        "reports/EVALUATION.md'>EVALUATION.md</a></p>"
+        "<p>Full report: <a href='https://github.com/ianstanojevic/iansta/blob/"
+        f"aidetect-v{__version__}/aidetect/reports/EVALUATION.md'>EVALUATION.md</a></p>"
     )
 
 

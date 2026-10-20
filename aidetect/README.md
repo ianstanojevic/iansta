@@ -103,7 +103,7 @@ wrote it, especially if the text was edited or reworded after the AI wrote it.
 For people comfortable with a terminal (requires Python 3.11 or newer):
 
 ```bash
-pip install "git+https://github.com/ianstanojevic/iansta.git#subdirectory=aidetect"
+pip install "git+https://github.com/ianstanojevic/iansta.git@aidetect-v0.1.0#subdirectory=aidetect"
 aidetect essay.docx          # verdict, score, warnings, reasons
 aidetect essay.pdf --json    # machine-readable
 aidetect --limitations
