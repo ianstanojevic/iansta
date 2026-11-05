@@ -1,0 +1,29 @@
+name: ADC Review
+
+on:
+  push:
+    paths: ['adc-review/**', '.github/workflows/adc-review.yml']
+  pull_request:
+    paths: ['adc-review/**', '.github/workflows/adc-review.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Type-check, test and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: adc-review
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: adc-review/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
