@@ -97,7 +97,7 @@ const earlyDeaths: Rule = (games) => {
   const ganked = games.flatMap((x) => x.deathList).filter((d) => d.minute < 15 && d.killers.length >= 3).length;
   const all = games.flatMap((x) => x.deathList).filter((d) => d.minute < 15).length;
   const detail = `${mine.toFixed(2)} dödsfall före 15 min per match (motståndaren: ${theirs.toFixed(2)}). Du dör tidigt i ${pct(share)} av matcherna${all ? `, och ${ganked} av ${all} av de dödsfallen var mot 3+ fiender (ganks/dives)` : ''}.`;
-  if (mine - theirs >= 0.3 || mine >= 1.1)
+  if (mine - theirs >= 0.3 || (mine >= 1.1 && mine > theirs))
     return [
       {
         id: 'early-deaths',
@@ -264,20 +264,37 @@ const vision: Rule = (games) => {
   const g = withOpp(games);
   const d = meanDiff(g, (x) => x.me.visionPerMin, (x) => x.opp.visionPerMin);
   const pinks = mean(g.map((x) => x.me.controlWards)) ?? 0;
+  const oppPinks = mean(g.map((x) => x.opp.controlWards)) ?? 0;
   if (d === null) return [];
-  if (d <= -0.08 || pinks < 1)
+  const detail = `Vision score ${signed(d, 2)} per minut mot motståndaren, ${pinks.toFixed(1)} control wards per match (motståndaren: ${oppPinks.toFixed(1)}).`;
+  if (d <= -0.08)
     return [
       {
         id: 'vision',
         kind: 'weakness',
         category: 'Vision',
-        severity: clamp01(-d / 0.3 + (pinks < 1 ? 0.3 : 0)),
-        title: 'Lite vision från dig',
-        detail: `Vision score ${signed(d, 2)} per minut mot motståndaren, ${pinks.toFixed(1)} control wards per match.`,
-        tip: 'Köp en control ward vid varje recall där du har 75 g över, och byt till Farsight när din support har bytt trinket. Ett ward vid din sidlane är billigare än ett dödsfall.',
+        severity: clamp01(-d / 0.3),
+        title: 'Lägre vision score än motståndaren',
+        detail,
+        tip: 'Byt till Farsight efter första item och använd den innan du går in i sidlanen. Köp en control ward vid varje recall där du har 75 g över. Ett ward vid din sidlane är billigare än ett dödsfall.',
         examples: worst(g, (x) => x.opp.visionPerMin - x.me.visionPerMin),
       },
     ];
+  if (pinks < 1 && g.length >= MIN_GAMES)
+    return [
+      {
+        id: 'vision',
+        kind: 'weakness',
+        category: 'Vision',
+        severity: clamp01((1 - pinks) * 0.4),
+        title: 'Du köper nästan inga control wards',
+        detail,
+        tip: 'Gör det till en vana att alltid ha en control ward i inventoryt efter första item. Placera den i sidlane-bushen eller vid drakpiten innan objectives.',
+        examples: worst(g, (x) => (x.me.controlWards === 0 ? 1 : 0)),
+      },
+    ];
+  if (d >= 0.15)
+    return [{ id: 'vision', kind: 'strength', category: 'Vision', severity: clamp01(d / 0.4), title: 'Bra vision för en ADC', detail, examples: [] }];
   return [];
 };
 

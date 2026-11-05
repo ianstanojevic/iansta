@@ -2,6 +2,7 @@ import { analyzeGame, NotAdcGameError, type GameAnalysis } from '../domain/analy
 import { DEMO_LEGENDARY_MIN_ID, DEMO_PUUID, demoGames } from '../domain/demo';
 import { legendaryItems, riotClient } from '../riot/client';
 import { getState, setState } from './store';
+import { getSyncStatus, setSyncStatus } from './syncStatus';
 
 export interface Progress {
   phase: string;
@@ -45,6 +46,7 @@ export async function syncFromRiot(onProgress: (p: Progress) => void): Promise<{
   let added = 0;
   let skipped = 0;
   for (const [i, id] of todo.entries()) {
+    if (getSyncStatus().cancelRequested) break;
     report({ phase: `Analyserar ${id}`, done: i, total: todo.length });
     const match = await client.match(id);
     const me = match.info.participants.find((p) => p.puuid === account.puuid);
@@ -71,6 +73,30 @@ export async function syncFromRiot(onProgress: (p: Progress) => void): Promise<{
   report({ phase: 'Klart', done: todo.length, total: todo.length });
   return { added, skipped };
 }
+
+/** Runs a sync and publishes its progress, so any part of the UI can show it. */
+export async function runSync(): Promise<number> {
+  if (getSyncStatus().running) return 0;
+  setSyncStatus({ running: true, phase: 'Startar …', done: 0, total: 0, error: null, result: null, cancelRequested: false });
+  try {
+    const { added, skipped } = await syncFromRiot((p) => setSyncStatus(p));
+    const cancelled = getSyncStatus().cancelRequested;
+    setSyncStatus({
+      running: false,
+      result:
+        `${added} nya ADC-matcher analyserade` +
+        (skipped ? `, ${skipped} hoppades över (annan roll eller remake)` : '') +
+        (cancelled ? ' – avbrutet' : '') +
+        '.',
+    });
+    return added;
+  } catch (err) {
+    setSyncStatus({ running: false, error: (err as Error).message });
+    return 0;
+  }
+}
+
+export const cancelSync = () => setSyncStatus({ cancelRequested: true, phase: 'Avbryter efter pågående match …' });
 
 export function loadDemo() {
   const games = demoGames().map((g) =>

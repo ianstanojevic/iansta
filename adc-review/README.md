@@ -43,6 +43,9 @@ anrop, så 100 matcher tar ungefär fyra minuter första gången. Appen väntar 
 Färdiga matcher sparas i `adc-review/.cache/`, så de hämtas aldrig igen. Ansök om en *personal API key*
 om du inte vill förnya nyckeln varje dag.
 
+Championporträtt och kartan hämtas från Riots Data Dragon-CDN. Utan nätverk visas initialer och
+en schematisk karta i stället.
+
 Nyckeln används bara av dev-serverns proxy (`server/riotProxy.ts`) och når aldrig webbläsarkoden.
 Riot API skickar inga CORS-headers, så appen måste köras via `npm run dev` (eller `npm run build &&
 npm run preview`) och kan inte ligga som en statisk sida.
