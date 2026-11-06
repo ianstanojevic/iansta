@@ -12,9 +12,11 @@ export interface SyncStatus {
   error: string | null;
   result: string | null;
   cancelRequested: boolean;
+  /** The server asked for the app password (APP_PASSWORD). */
+  needsPassword: boolean;
 }
 
-let status: SyncStatus = { running: false, phase: '', done: 0, total: 0, error: null, result: null, cancelRequested: false };
+let status: SyncStatus = { running: false, phase: '', done: 0, total: 0, error: null, result: null, cancelRequested: false, needsPassword: false };
 const listeners = new Set<() => void>();
 
 export const getSyncStatus = () => status;

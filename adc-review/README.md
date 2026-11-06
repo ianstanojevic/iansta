@@ -27,28 +27,46 @@ Fokuset visas när du granskar nästa match.
 
 ## Kom igång
 
+### Som webbsida på Vercel (rekommenderat med en personal API key)
+
+Då öppnar du bara en länk, även från mobilen. Riot-anropen går via en molnfunktion
+(`api/riot.ts`), så nyckeln ligger på servern och når aldrig webbläsaren.
+
+1. Logga in på [vercel.com](https://vercel.com) med GitHub och välj **Add New → Project**.
+2. Importera repot `iansta` och sätt **Root Directory** till `adc-review`. Ramverket (Vite)
+   känns igen automatiskt.
+3. Lägg till två **Environment Variables**:
+   - `RIOT_API_KEY`: din Riot-nyckel
+   - `APP_PASSWORD`: ett lösenord du väljer. Utan det kan vem som helst med länken använda din
+     nyckel.
+4. Tryck **Deploy**. Öppna länken, fyll i Riot ID, och ange lösenordet när appen frågar
+   (bara första gången).
+
+Vercel bygger produktionsversionen från repots huvudbranch. Ligger appen på en annan branch,
+ändra **Settings → Git → Production Branch** eller merga först.
+
+Proxyn släpper bara igenom de fyra Riot-anrop appen använder (konto, matchlista, match, timeline).
+
+### Lokalt
+
 ```bash
 cd adc-review
 npm install
 cp .env.example .env.local   # fyll i RIOT_API_KEY
-npm run dev
+npm start                    # startar och öppnar webbläsaren
 ```
 
-Öppna adressen som visas, fyll i ditt Riot ID och region under **Hämta data**, och tryck
-**Hämta & analysera**. Vill du bara se hur det ser ut, välj **Prova med demodata** eller öppna `/?demo`.
+Lokalt sparas färdiga matcher i `adc-review/.cache/`, så de hämtas aldrig igen.
 
-**API-nyckel:** skaffa en på [developer.riotgames.com](https://developer.riotgames.com). En
-utvecklarnyckel gäller i 24 timmar och tillåter 100 anrop per 2 minuter. Varje match kostar två
-anrop, så 100 matcher tar ungefär fyra minuter första gången. Appen väntar själv ut rate limits.
-Färdiga matcher sparas i `adc-review/.cache/`, så de hämtas aldrig igen. Ansök om en *personal API key*
-om du inte vill förnya nyckeln varje dag.
+### Bra att veta
+
+Vill du bara se hur appen ser ut, välj **Prova med demodata** eller öppna `/?demo`.
+
+En nyckel tillåter 100 anrop per 2 minuter, och varje match kostar två anrop. 100 matcher tar
+alltså ungefär fyra minuter första gången. Appen väntar själv ut rate limits.
 
 Championporträtt och kartan hämtas från Riots Data Dragon-CDN. Utan nätverk visas initialer och
 en schematisk karta i stället.
-
-Nyckeln används bara av dev-serverns proxy (`server/riotProxy.ts`) och når aldrig webbläsarkoden.
-Riot API skickar inga CORS-headers, så appen måste köras via `npm run dev` (eller `npm run build &&
-npm run preview`) och kan inte ligga som en statisk sida.
 
 ## Begränsningar
 
@@ -61,7 +79,9 @@ npm run preview`) och kan inte ligga som en statisk sida.
 ## Struktur
 
 ```
-server/riotProxy.ts      dev-server-proxy mot Riot API + diskcache
+server/riotCore.ts       vidarebefordran till Riot API (vitlista, lösenord, nyckel)
+server/riotProxy.ts      samma sak som dev-server-middleware, med diskcache
+api/riot.ts              samma sak som Vercel-funktion
 src/riot/                API-klient och payload-typer
 src/domain/analyzeGame   en match + timeline → statistik för dig och motståndaren, dödsfall
 src/domain/insights      reglerna som hittar svagheter och styrkor

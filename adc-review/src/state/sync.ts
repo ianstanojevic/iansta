@@ -1,6 +1,6 @@
 import { analyzeGame, NotAdcGameError, type GameAnalysis } from '../domain/analyzeGame';
 import { DEMO_LEGENDARY_MIN_ID, DEMO_PUUID, demoGames } from '../domain/demo';
-import { legendaryItems, riotClient } from '../riot/client';
+import { legendaryItems, riotClient, RiotError } from '../riot/client';
 import { getState, setState } from './store';
 import { getSyncStatus, setSyncStatus } from './syncStatus';
 
@@ -21,7 +21,8 @@ export async function syncFromRiot(onProgress: (p: Progress) => void): Promise<{
 
   let last: Progress = { phase: 'Slår upp konto …', done: 0, total: 0 };
   const report = (p: Progress) => onProgress((last = p));
-  const client = riotClient(settings.region, settings.apiKey.trim() || undefined, (s) =>
+  const auth = { token: settings.apiKey.trim() || undefined, password: settings.appPassword || undefined };
+  const client = riotClient(settings.region, auth, (s) =>
     onProgress({ ...last, phase: `Rate limit – väntar ${s} s …` }),
   );
   report(last);
@@ -77,7 +78,7 @@ export async function syncFromRiot(onProgress: (p: Progress) => void): Promise<{
 /** Runs a sync and publishes its progress, so any part of the UI can show it. */
 export async function runSync(): Promise<number> {
   if (getSyncStatus().running) return 0;
-  setSyncStatus({ running: true, phase: 'Startar …', done: 0, total: 0, error: null, result: null, cancelRequested: false });
+  setSyncStatus({ running: true, phase: 'Startar …', done: 0, total: 0, error: null, result: null, cancelRequested: false, needsPassword: false });
   try {
     const { added, skipped } = await syncFromRiot((p) => setSyncStatus(p));
     const cancelled = getSyncStatus().cancelRequested;
@@ -91,7 +92,8 @@ export async function runSync(): Promise<number> {
     });
     return added;
   } catch (err) {
-    setSyncStatus({ running: false, error: (err as Error).message });
+    const needsPassword = err instanceof RiotError && err.code === 'password';
+    setSyncStatus({ running: false, error: (err as Error).message, needsPassword });
     return 0;
   }
 }

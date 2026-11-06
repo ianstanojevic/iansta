@@ -45,10 +45,17 @@ export function SyncPanel({ onDone, compact = false }: { onDone: () => void; com
           </select>
         </label>
       </div>
+      {(status.needsPassword || settings.appPassword) && (
+        <label className="field">
+          <span>Applösenord</span>
+          <input type="password" value={settings.appPassword} onChange={(e) => set({ appPassword: e.target.value })} placeholder="Lösenordet du satte som APP_PASSWORD" autoComplete="current-password" />
+          Behövs bara en gång. Sparas i den här webbläsaren.
+        </label>
+      )}
       {!compact && (
         <label className="field">
           <span>Riot API-nyckel (valfri)</span>
-          <input type="password" value={settings.apiKey} onChange={(e) => set({ apiKey: e.target.value })} placeholder="Lämna tom om RIOT_API_KEY finns i .env.local" autoComplete="off" />
+          <input type="password" value={settings.apiKey} onChange={(e) => set({ apiKey: e.target.value })} placeholder="Lämna tom – nyckeln ligger på servern" autoComplete="off" />
           Sparas bara i den här webbläsaren och skickas bara till din lokala dev-server.
         </label>
       )}

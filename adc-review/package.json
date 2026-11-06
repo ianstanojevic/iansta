@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Post-game review for League of Legends ADC players: finds your recurring weaknesses from Riot match timelines and your own review notes.",
   "scripts": {
+    "start": "vite --open",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",

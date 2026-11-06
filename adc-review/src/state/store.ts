@@ -13,8 +13,10 @@ export interface Settings {
   tagLine: string;
   region: Region;
   count: number;
-  /** Optional: only needed when RIOT_API_KEY is not set in .env.local. */
+  /** Optional: only needed when RIOT_API_KEY is not set on the server. */
   apiKey: string;
+  /** Password for a hosted instance (the server's APP_PASSWORD). */
+  appPassword: string;
 }
 
 export interface State {
@@ -32,7 +34,7 @@ export interface State {
 const KEY = 'adc-review/v1';
 
 const initial: State = {
-  settings: { gameName: '', tagLine: '', region: 'europe', count: 50, apiKey: '' },
+  settings: { gameName: '', tagLine: '', region: 'europe', count: 50, apiKey: '', appPassword: '' },
   puuid: null,
   playerLabel: null,
   demo: false,

@@ -14,8 +14,8 @@ export default defineConfig(({ mode }) => {
     css: { postcss: { plugins: [] } },
     plugins: [
       react(),
-      riotProxy({ apiKey: env.RIOT_API_KEY, cacheDir: path.resolve(__dirname, '.cache') }),
+      riotProxy({ apiKey: env.RIOT_API_KEY, appPassword: env.APP_PASSWORD, cacheDir: path.resolve(__dirname, '.cache') }),
     ],
-    test: { environment: 'node', include: ['src/**/*.test.ts'] },
+    test: { environment: 'node', include: ['src/**/*.test.ts', 'server/**/*.test.ts'] },
   };
 });

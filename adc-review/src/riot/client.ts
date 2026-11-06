@@ -15,6 +15,8 @@ export class RiotError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    /** Machine-readable reason from our proxy, e.g. 'password' or 'no-key'. */
+    readonly code?: string,
   ) {
     super(message);
   }
@@ -27,9 +29,17 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * responses are waited out using Riot's Retry-After header rather than failed,
  * because a development key runs into the 100-per-2-minutes limit at ~50 games.
  */
-async function get<T>(host: string, path: string, token: string | undefined, onWait?: (s: number) => void): Promise<T> {
+async function get<T>(
+  host: string,
+  path: string,
+  auth: { token?: string; password?: string } = {},
+  onWait?: (s: number) => void,
+): Promise<T> {
+  const headers: Record<string, string> = {};
+  if (auth.token) headers['x-riot-token'] = auth.token;
+  if (auth.password) headers['x-app-password'] = auth.password;
   for (let attempt = 0; ; attempt++) {
-    const res = await fetch(`/riot/${host}${path}`, { headers: token ? { 'x-riot-token': token } : {} });
+    const res = await fetch(`/riot/${host}${path}`, { headers });
     if (res.ok) return res.json() as Promise<T>;
     if ((res.status === 429 || res.status >= 500) && attempt < 6) {
       const wait = Number(res.headers.get('retry-after')) || 2 ** attempt;
@@ -38,14 +48,17 @@ async function get<T>(host: string, path: string, token: string | undefined, onW
       continue;
     }
     let message = `${res.status} från Riot`;
+    let code: string | undefined;
     try {
       const body = await res.json();
       message = body.error ?? body.status?.message ?? message;
+      code = body.code;
     } catch {
       /* not JSON */
     }
+    if (code) throw new RiotError(message, res.status, code);
     if (res.status === 401 || res.status === 403)
-      message = `${message} – API-nyckeln saknas, är ogiltig eller har gått ut (utvecklarnycklar gäller 24 h).`;
+      message = `${message} – Riot godtar inte API-nyckeln. Kontrollera att den är rätt och inte har gått ut.`;
     if (res.status === 404 && path.includes('by-riot-id')) message = 'Hittade inget konto med det Riot ID:t i den regionen.';
     throw new RiotError(message, res.status);
   }
@@ -58,8 +71,12 @@ export interface RiotClient {
   timeline(id: string): Promise<TimelineDto>;
 }
 
-export function riotClient(region: Region, token?: string, onWait?: (s: number) => void): RiotClient {
-  const call = <T,>(path: string) => get<T>(region, path, token, onWait);
+export function riotClient(
+  region: Region,
+  auth: { token?: string; password?: string },
+  onWait?: (s: number) => void,
+): RiotClient {
+  const call = <T,>(path: string) => get<T>(region, path, auth, onWait);
   return {
     account: (gameName, tagLine) =>
       call(`/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`),
@@ -94,8 +111,8 @@ interface DDragonItem {
  * upgrade or boots.
  */
 export async function legendaryItems(): Promise<Set<number>> {
-  const versions = await get<string[]>('ddragon', '/api/versions.json', undefined);
-  const items = await get<{ data: Record<string, DDragonItem> }>('ddragon', `/cdn/${versions[0]}/data/en_US/item.json`, undefined);
+  const versions = await get<string[]>('ddragon', '/api/versions.json');
+  const items = await get<{ data: Record<string, DDragonItem> }>('ddragon', `/cdn/${versions[0]}/data/en_US/item.json`);
   const ids = new Set<number>();
   for (const [id, item] of Object.entries(items.data)) {
     if (
