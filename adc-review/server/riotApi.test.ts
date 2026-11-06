@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { GET } from '../api/riot';
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import handler from '../api/riot';
 
 const upstream = vi.fn();
 
@@ -12,9 +13,20 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-// How Vercel calls the function after the /riot/:path* rewrite in vercel.json.
-const call = (rest: string, query = '', headers: Record<string, string> = {}) =>
-  GET(new Request(`https://app.example/api/riot?p=${encodeURIComponent(rest)}${query}`, { headers }));
+// How Vercel calls the function after the /riot/:path* rewrite in vercel.json:
+// a Node request for /api/riot?p=<rest>&<original query>. The captured
+// response is turned into a fetch Response to keep the assertions short.
+async function call(rest: string, query = '', headers: Record<string, string> = {}): Promise<Response> {
+  const req = { method: 'GET', url: `/api/riot?p=${encodeURIComponent(rest)}${query}`, headers } as unknown as IncomingMessage;
+  const out = { status: 0, headers: new Headers(), body: Buffer.alloc(0) };
+  const res = {
+    set statusCode(v: number) { out.status = v; },
+    setHeader: (k: string, v: string) => out.headers.set(k, v),
+    end: (b: Buffer) => { out.body = b; },
+  } as unknown as ServerResponse;
+  await handler(req, res);
+  return new Response(out.body, { status: out.status, headers: out.headers });
+}
 
 describe('api/riot', () => {
   it('forwards an allowed call with the server key and the original query', async () => {

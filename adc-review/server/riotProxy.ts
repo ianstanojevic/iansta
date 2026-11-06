@@ -7,7 +7,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
-import { forwardRiot, isImmutable, parseProxyPath, type ForwardConfig } from './riotCore';
+import { forwardRiot, isImmutable, parseProxyPath, writeResult, type ForwardConfig } from '../api/riot';
 
 export function riotProxy(options: ForwardConfig & { cacheDir: string }): Plugin {
   const handle = async (req: IncomingMessage, res: ServerResponse) => {
@@ -37,8 +37,7 @@ export function riotProxy(options: ForwardConfig & { cacheDir: string }): Plugin
       },
       options,
     );
-    if (result.retryAfter) res.setHeader('retry-after', result.retryAfter);
-    send(res, result.status, result.contentType, Buffer.from(result.body));
+    writeResult(res, result);
 
     if (cacheable && result.status === 200) {
       await mkdir(options.cacheDir, { recursive: true });
