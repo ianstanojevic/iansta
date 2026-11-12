@@ -1080,10 +1080,11 @@ const QUESTIONS = [
    Coach lines
    ===================================================================== */
 const L = {
+  mine:["You got this, lijepa!","You go girl!","Speedy Gonzales, let's go!","Girlpower!","Ljubavi, du klarar det här!","Let's go baby!","We the best!","Cappuccino!","How you doin? <3","Heja heja!"],
   correct:["You got this, lijepa!","You go girl!","Speedy Gonzales, let's go!","Girlpower!","Ljubavi, du klarar det här!","Let's go baby!","We the best!","Cappuccino!","How you doin? <3","Heja heja!","Du är bäst.","Snyggt, {n}!","Klockrent.","Där satt den.","Helt rätt.","Yes!","Grymt.","Exakt så.","Lätt för dig.","Rätt. Nästa!","Bra, {n}!","Kanon."],
   wrong:["Ingen fara, nu vet du.","Nästan! Kolla förklaringen.","Den var lurig.","Hellre fel nu än på provet.","Lugnt, den tar du nästa gång."],
   broke:["Sviten sprack. Ny svit nu!","Ingen fara, bygg en ny svit."],
-  combo:{3:"Tre i rad! Dubbla poäng.",6:"Sex raka! Trippla poäng.",10:"Tio i rad. Du är bäst, {n}."},
+  combo:{3:"Tre i rad! Dubbla poäng.",6:"Sex raka! Trippla poäng.",10:"Tio i rad!"},
   start:["Kör, {n}!","Nu kör vi.","Bältet på. Första frågan:","Läs noga, du fixar det."],
   startProv:["Provläge. Ta det lugnt och läs noga.","Som riktiga provet. Lycka till!"],
   startBlixt:["60 sekunder. Kör!","Snabba svar nu. Kör!"],
@@ -1858,9 +1859,9 @@ function answer(k){
     const stv=$("#stv"); if(stv) stv.textContent=R.streak;
     const stp=$("#stp"); if(stp){ stp.classList.toggle("hot",mult>1); $("#mv").textContent="x"+mult; bump("#stp"); }
     addDot("ok");
-    if(L.combo[R.streak]){ setTimeout(()=>{ comboBanner(mult); SFX.combo(mult-1); FX.burst(innerWidth/2,innerHeight*.38,90,{speed:14}); },260); if(R.streak>=6) Coach.say(L.combo[R.streak],{m:"party"}); }
-    else if(R.streak===5){ Coach.say(L.streak5,{m:"party"}); Coach.hearts(7); }
-    else if(R.mode!=="blixt" && Math.random()<.15) Coach.say(rnd(L.correct),{m:"happy"});
+    if(L.combo[R.streak]){ setTimeout(()=>{ comboBanner(mult); SFX.combo(mult-1); FX.burst(innerWidth/2,innerHeight*.38,90,{speed:14}); },260); if(R.streak>=6) Coach.say(rnd(L.mine)+" "+L.combo[R.streak],{m:"party"}); }
+    else if(R.streak===5){ Coach.say(rnd(L.mine),{m:"party"}); Coach.hearts(7); }
+    else if(R.mode!=="blixt" && Math.random()<.3) Coach.say(rnd(Math.random()<.8?L.mine:L.correct),{m:"happy"});
     if(R.streak===10) Coach.hearts(8);
     if(R.streak===5) unlock("s5"); if(R.streak===10) unlock("s10");
     if(R.mode==="blixt"){ R.time=Math.min(R.time+2,99); updateTimer(); floatTextTimer("+2 s"); }
