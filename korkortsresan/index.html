@@ -1579,7 +1579,7 @@ function renderHome(greet=true){
     setTimeout(()=>Coach.say(line,{m:"happy",side:"br"}),700);
   }
   clearInterval(homeIdle);
-  homeIdle=setInterval(()=>{ if(!R && !document.querySelector(".overlay") && !document.hidden) Coach.say(rnd(Math.random()<.5?L.homeIdle:L.tips),{m:"happy"}); },32000);
+  homeIdle=setInterval(()=>{ if(!R && !document.querySelector(".overlay") && !document.hidden) Coach.say(rnd(Math.random()<.5?L.homeIdle:L.tips),{m:"happy"}); },120000);
 }
 function isYesterday(d){ if(!d) return false; const y=new Date(); y.setDate(y.getDate()-1); return d===(y.getFullYear()+"-"+(y.getMonth()+1)+"-"+y.getDate()); }
 
@@ -1786,7 +1786,7 @@ function renderQuestion(first=false){
   const f=$("#fifty"); if(f) f.onclick=useFifty;
   R.locked=false; R.qStart=performance.now();
   clearTimeout(R.idleT);
-  if(R.mode!=="blixt" && R.mode!=="prov") R.idleT=setTimeout(()=>{ if(R && !R.locked) Coach.say(rnd(L.idleQ),{m:"think"}); },16000);
+  if(R.mode!=="blixt" && R.mode!=="prov") R.idleT=setTimeout(()=>{ if(R && !R.locked) Coach.say(rnd(L.idleQ),{m:"think"}); },35000);
   updateRoad();
 }
 function useFifty(){
@@ -1858,9 +1858,9 @@ function answer(k){
     const stv=$("#stv"); if(stv) stv.textContent=R.streak;
     const stp=$("#stp"); if(stp){ stp.classList.toggle("hot",mult>1); $("#mv").textContent="x"+mult; bump("#stp"); }
     addDot("ok");
-    if(L.combo[R.streak]){ setTimeout(()=>{ comboBanner(mult); SFX.combo(mult-1); FX.burst(innerWidth/2,innerHeight*.38,90,{speed:14}); },260); Coach.say(L.combo[R.streak],{m:"party"}); }
+    if(L.combo[R.streak]){ setTimeout(()=>{ comboBanner(mult); SFX.combo(mult-1); FX.burst(innerWidth/2,innerHeight*.38,90,{speed:14}); },260); if(R.streak>=6) Coach.say(L.combo[R.streak],{m:"party"}); }
     else if(R.streak===5){ Coach.say(L.streak5,{m:"party"}); Coach.hearts(7); }
-    else if(R.mode!=="blixt" && Math.random()<.4) Coach.say(rnd(L.correct),{m:"happy"});
+    else if(R.mode!=="blixt" && Math.random()<.15) Coach.say(rnd(L.correct),{m:"happy"});
     if(R.streak===10) Coach.hearts(8);
     if(R.streak===5) unlock("s5"); if(R.streak===10) unlock("s10");
     if(R.mode==="blixt"){ R.time=Math.min(R.time+2,99); updateTimer(); floatTextTimer("+2 s"); }
@@ -1876,7 +1876,7 @@ function answer(k){
       R.items.splice(Math.min(R.i+3,R.items.length),0,{q,order:shuffle(q.a.map((_,i)=>i)),retry:true});
       relayoutDots();
     }
-    if(R.mode!=="blixt" && (broke || Math.random()<.6)) Coach.say(broke?rnd(L.broke):rnd(L.wrong),{m:"sad"});
+    if(R.mode!=="blixt" && (broke || Math.random()<.2)) Coach.say(broke?rnd(L.broke):rnd(L.wrong),{m:"sad"});
     if(R.mode==="blixt"){ R.time=Math.max(0,R.time-3); updateTimer(); floatTextTimer("−3 s",true); }
   }
   updateRoad();
