@@ -2059,8 +2059,31 @@ addEventListener("keydown",e=>{
 });
 
 /* ---------- Boot ---------- */
-function boot(){
+/* Keep a running round alive when a new version of the page is delivered. */
+function snap(){
+  try{ save(); }catch(e){}
+  if(!R) return {};
+  return {round:{mode:R.mode,cat:R.cat,i:R.i,score:R.score,streak:R.streak,best:R.best,correct:R.correct,answered:R.answered,fifty:R.fifty,time:R.time,startXP:R.startXP,startLevel:R.startLevel,locked:R.locked,
+    items:R.items.map(it=>({id:it.q.id,order:it.order,retry:!!it.retry})),log:R.log.map(l=>({id:l.q.id,picked:l.picked,ok:l.ok}))}};
+}
+function restoreRound(d){
+  const byId=Object.fromEntries(QUESTIONS.map(q=>[q.id,q]));
+  const items=d.items.filter(x=>byId[x.id]).map(x=>({q:byId[x.id],order:x.order,retry:x.retry}));
+  if(!items.length) return false;
+  R=Object.assign({},d,{items,log:d.log.filter(l=>byId[l.id]).map(l=>({q:byId[l.id],picked:l.picked,ok:l.ok})),newBadges:[],locked:false});
+  if(d.locked) R.i++;
+  if(R.mode!=="blixt" && R.i>=R.items.length){ finish(); return true; }
+  if(R.mode==="blixt" && R.i>=R.items.length) R.items=R.items.concat(shuffle(QUESTIONS.slice()).map(mkItem));
+  renderQuiz();
+  const dots=$("#dots"); if(dots && R.mode!=="blixt") R.log.forEach((l,k)=>{ const e=document.createElement("div"); e.className="dot "+(R.mode==="prov"?"neutral":l.ok?"ok":"bad"); e.dataset.n=k+1; e.style.left=((k+.5)/R.items.length*100)+"%"; dots.appendChild(e); });
+  if(R.time) startTimer();
+  return true;
+}
+function boot(data){
+  try{ window.claude?.hot?.snapshot?.(snap); }catch(e){}
+  if(data && data.round){ try{ if(restoreRound(data.round)) return; }catch(e){ R=null; } }
   let seen=false; try{ seen=sessionStorage.getItem("kr-intro")==="1"; }catch(e){}
+  if(data && Object.keys(data).length===0) seen=true;
   renderHome(seen);
   if(!seen) showIntro();
 }
