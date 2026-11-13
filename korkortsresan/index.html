@@ -1555,7 +1555,7 @@ function renderHome(greet=true){
     <div class="cat-grid">${Object.entries(CATS).map(([k,c])=>{const has=S.cat[k]&&S.cat[k].t;return `<button class="cat-tile" data-cat="${k}" data-sfx>${sign(c.sign)}<span class="ct-name">${c.name}</span><span class="ct-pct num">${has?catPct(k)+"%":"Ny"}</span><span class="meter"><i style="width:${catPct(k)}%"></i></span></button>`;}).join("")}</div>
     <div class="section-h"><h2>Medaljer</h2><span><span class="num">${S.badges.length}</span> av ${BADGES.length}</span></div>
     <div class="badges">${BADGES.map(b=>{const on=S.badges.includes(b.id);return `<div class="badge ${on?"":"locked"}" title="${esc(b.name+": "+b.desc)}">${badgeSvg(b.label,on)}<b>${b.name}</b></div>`;}).join("")}</div>
-    <p class="foot">Frågorna är skrivna för att öva inför kunskapsprovet för B-körkort och bygger på svenska trafikregler. Kontrollera alltid aktuella regler hos Transportstyrelsen och Trafikverket. <button id="reset">Nollställ framsteg</button></p>
+    <p class="foot">Frågorna är skrivna för att öva inför kunskapsprovet för B-körkort och bygger på svenska trafikregler. Kontrollera alltid aktuella regler hos Transportstyrelsen och Trafikverket. <button id="backup">Säkerhetskopiera framsteg</button> · <button id="restore">Återställ från kod</button> · <button id="reset">Nollställ framsteg</button></p>
   </section>`;
   wireSound(); clickSounds(); Coach.wire();
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
@@ -1564,6 +1564,7 @@ function renderHome(greet=true){
   }));
   app.querySelectorAll("[data-cat]").forEach(b=>b.addEventListener("click",()=>startRound("cat",b.dataset.cat)));
   const dqb=$("#dqgo"); if(dqb) dqb.onclick=openDaily;
+  $("#backup").onclick=showBackup; $("#restore").onclick=showRestore;
   enter();
   app.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>{
     const m=b.dataset.mode; if(b.disabled) return;
@@ -1691,6 +1692,38 @@ function showIntro(){
     const car=$("#icar"); car.classList.add("go");
     setTimeout(()=>{ ov.classList.add("out"); },1200);
     setTimeout(()=>{ ov.remove(); try{ sessionStorage.setItem("kr-intro","1"); }catch(e){} Coach.say(rnd(L.idleHome),{m:"happy",side:"br"}); },1650);
+  };
+}
+
+/* ---------- Backup code ---------- */
+function backupCode(){ save(); const j=JSON.stringify(S); return "KR1-"+btoa(unescape(encodeURIComponent(j))); }
+function showBackup(){
+  const code=backupCode();
+  const ov=document.createElement("div"); ov.className="overlay";
+  ov.innerHTML=`<div class="sheet" role="dialog" aria-modal="true"><h2>Säkerhetskopia</h2><p>Kopiera koden och spara den, till exempel i Anteckningar eller som ett meddelande till dig själv. Med koden kan du få tillbaka allt, även på en annan telefon.</p>
+    <textarea id="bk" readonly style="width:100%;height:110px;margin-top:12px;font:12px/1.4 ui-monospace,monospace;border-radius:12px;border:2px solid var(--line);background:var(--surface-2);color:var(--ink);padding:10px;word-break:break-all">${code}</textarea>
+    <div class="row"><button class="btn ghost" id="bkx">Stäng</button><button class="btn" id="bkc">Kopiera koden</button></div></div>`;
+  document.body.appendChild(ov);
+  ov.addEventListener("click",e=>{ if(e.target===ov) ov.remove(); });
+  $("#bkx",ov).onclick=()=>ov.remove();
+  $("#bkc",ov).onclick=()=>{ const t=$("#bk",ov); const ok=()=>{ $("#bkc",ov).textContent="Kopierad!"; SFX.badge(); };
+    try{ navigator.clipboard.writeText(code).then(ok,()=>{ t.select(); }); }catch(e){ t.select(); } };
+}
+function showRestore(){
+  const ov=document.createElement("div"); ov.className="overlay";
+  ov.innerHTML=`<div class="sheet" role="dialog" aria-modal="true"><h2>Återställ framsteg</h2><p>Klistra in din säkerhetskopia. Det ersätter det som finns sparat nu.</p>
+    <textarea id="rs" style="width:100%;height:110px;margin-top:12px;font:12px/1.4 ui-monospace,monospace;border-radius:12px;border:2px solid var(--line);background:var(--surface);color:var(--ink);padding:10px" placeholder="KR1-..."></textarea>
+    <p id="rserr" style="color:var(--bad);margin-top:8px" hidden>Koden fungerade inte. Kontrollera att hela koden kom med.</p>
+    <div class="row"><button class="btn ghost" id="rsx">Avbryt</button><button class="btn" id="rsok">Återställ</button></div></div>`;
+  document.body.appendChild(ov);
+  ov.addEventListener("click",e=>{ if(e.target===ov) ov.remove(); });
+  $("#rsx",ov).onclick=()=>ov.remove();
+  $("#rsok",ov).onclick=()=>{
+    try{ let c=$("#rs",ov).value.trim(); if(!c.startsWith("KR1-")) throw 0;
+      const d=JSON.parse(decodeURIComponent(escape(atob(c.slice(4))))); if(typeof d!=="object"||typeof d.xp!=="number") throw 0;
+      S=Object.assign(JSON.parse(JSON.stringify(DEF)),d); S.name="Ida"; save(); ov.remove(); SFX.levelup(); FX.rain(120); renderHome(false);
+      Coach.say("Allt är tillbaka. Let's go!",{m:"party",side:"br"});
+    }catch(e){ $("#rserr",ov).hidden=false; SFX.wrong(); }
   };
 }
 
